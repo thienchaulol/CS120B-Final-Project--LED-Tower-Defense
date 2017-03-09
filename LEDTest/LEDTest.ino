@@ -10,12 +10,11 @@
 RGBmatrixPanel matrix(A, B, C, CLK, LAT, OE, true);
 
 int incomingByte = 0; //USART byte
-int level = 2; //current level
-int currentTurret = 0; //0 = blue, 1 = cyan, 2 = green
-int inGame = 0; //0 = not in game, 1 = in game
-int cursorX = 14;
-int cursorY = 30;
-unsigned char movement = 0x00;
+unsigned int level = 2; //current level
+unsigned int inGame = 0; //0 = not in game, 1 = in game
+unsigned int cursorX = 14; //X position of cursor
+unsigned int cursorY = 30; //Y position of cursor
+unsigned char movement = 0x00; //new cursor position
 
 void setup() {
   Serial.begin(9600);
@@ -70,19 +69,15 @@ void loop() {
     incomingByte = Serial.read();
   }
   matrix.fillScreen(0);
+  //Cursor Functionality. Only works when not in game
   moveCursorTick();
-  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw new circle
+  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw current circle
+  //Level Functionality
   levels();
-  //Place Turret
-  /*
-  if(incomingByte & 0x40){
-    matrix.drawPixel(cursorY, cursorX, matrix.Color333(0, 0, 7));
-  }
-  */
-  //TODO: Implement UART functionality
-
+  //TODO: Place Turret Functionality. Only works when not in game
+    //Have struct of turrets. Have function that writes turrets at their
+    //current positions, and colors, after they've been placed from button
   //TODO: Implement enemy functionality
-
   //TODO: Implement turret functionality
 
   //Update Display
@@ -148,4 +143,3 @@ void levels(){
     matrix.drawLine(0, 7, 32, 7, matrix.Color333(7, 0, 0));
   }
 }
-

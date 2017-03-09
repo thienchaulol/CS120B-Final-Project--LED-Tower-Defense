@@ -137,7 +137,7 @@ int sNpTick(int state){
 	}
 	return state;
 }
-
+/*
 enum placeTurret_States{placeTurret_init, placeTurret_wait, placeTurret_Press, placeTurret_Release};
 
 int placeTurretTick(int state){
@@ -160,13 +160,12 @@ int placeTurretTick(int state){
 			break;
 		case placeTurret_Press: break;
 		case placeTurret_Release:
-			//TODO: Place turret. Need to check "currentTurret", player's gold, and current state of game(in game or not)
 			//outgoingByte = outgoingByte | 0x80; //Turn 7th bit high
 			break;
 	}
 	return state;
 }
-
+*/
 //Maybe have only one type of turret due to time constraints.
 enum selectTurret_States{selTur_init, selTur_wait, selTur_bluePress, selTur_blueRelease, selTur_purpPress, selTur_purpRelease, selTur_greenPress, selTur_greenRelease};
 
@@ -200,11 +199,21 @@ int selTurTick(int state){
 	switch(state){
 		case selTur_init: break;
 		case selTur_wait: break;
-		case selTur_bluePress: break;
+		case selTur_bluePress:
+			//TODO: Place turret. Need to check "currentTurret", player's gold, and current state of game(in game or not)
+			//place blue
+			outgoingByte = outgoingByte | 0x10;
+			break;
 		case selTur_blueRelease: break;
-		case selTur_purpPress: break;
+		case selTur_purpPress: 
+			//place purple
+			outgoingByte = outgoingByte | 0x20;
+			break;
 		case selTur_purpRelease: break;
-		case selTur_greenPress: break;
+		case selTur_greenPress: 
+			//place green
+			outgoingByte = outgoingByte | 0x30;
+			break;
 		case selTur_greenRelease: break;
 	}
 	return state;
@@ -323,7 +332,7 @@ int main(void)
 	unsigned long int LCDTick_calc = 500;
 	unsigned long int ADCTick_calc = 200;
 	unsigned long int sNpTick_calc = 200;
-	unsigned long int placeTurretTick_calc = 200;
+	//unsigned long int placeTurretTick_calc = 200;
 	unsigned long int selTurTick_calc = 200;
 	unsigned long int usartSMTick_calc = 100;
 	
@@ -331,7 +340,7 @@ int main(void)
 	unsigned long int tmpGCD = 1;
 	tmpGCD = findGCD(LCDTick_calc, ADCTick_calc);
 	tmpGCD = findGCD(tmpGCD, sNpTick_calc);
-	tmpGCD = findGCD(tmpGCD, placeTurretTick_calc);
+	//tmpGCD = findGCD(tmpGCD, placeTurretTick_calc);
 	tmpGCD = findGCD(tmpGCD, selTurTick_calc);
 	tmpGCD = findGCD(tmpGCD, usartSMTick_calc);
 
@@ -342,13 +351,13 @@ int main(void)
 	unsigned long int LCDTick_period = LCDTick_calc/GCD;
 	unsigned long int ADCTick_period = ADCTick_calc/GCD;
 	unsigned long int sNpTick_period = sNpTick_calc/GCD;
-	unsigned long int placeTurretTick_period = placeTurretTick_calc/GCD;
+	//unsigned long int placeTurretTick_period = placeTurretTick_calc/GCD;
 	unsigned long int selTurTick_period = selTurTick_calc/GCD;
 	unsigned long int usartSMTick_period = usartSMTick_calc/GCD;
 
 	//Declare an array of tasks
-	static task task1, task2, task3, task4, task5, task6;
-	task *tasks[] = { &task1, &task2 ,&task3, &task4, &task5, &task6};
+	static task task1, task2, task3, /*task4,*/ task5, task6;
+	task *tasks[] = { &task1, &task2 ,&task3, /*&task4,*/ &task5, &task6};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 
 	// Task 1
@@ -368,13 +377,13 @@ int main(void)
 	task3.period = sNpTick_period;
 	task3.elapsedTime = sNpTick_period;
 	task3.TickFct = &sNpTick;
-	
+	/*
 	// Task 4
 	task4.state = placeTurret_init;
 	task4.period = placeTurretTick_period;
 	task4.elapsedTime = placeTurretTick_period;
 	task4.TickFct = &placeTurretTick;
-	
+	*/
 	// Task 5
 	task5.state = selTur_init;
 	task5.period = selTurTick_period;
@@ -395,10 +404,8 @@ int main(void)
 	initUSART(0);
 	USART_Flush(0);
 	
-	//Array of user's towers
-		//Whenever a purchase is made, add to the array of towers.
-		//At the end of every level, screen will be cleared and user's towers will be refunded.
-	tower *towers[] = {};
+	//Array of towers
+	tower *tower[] = {};
 	
 	//Array of enemies on current level
 		//Enemies in array will spawn on map at certain intervals.
