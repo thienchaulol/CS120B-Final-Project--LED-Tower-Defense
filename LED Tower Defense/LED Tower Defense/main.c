@@ -39,6 +39,20 @@ unsigned char C5; //Reset button
 int x2, y2; //Coordinates for 2-axis joystick
 char a[20], b[20]; //Used to test if 2-axis joystick works.
 unsigned char joystickMovement; //lower 4 bits of outgoing byte to Arduino Uno
+
+	
+//Array of towers
+//CANNOT ADD TO ARRAY DURING RUNTIME.
+//Allocate array of towers at beginning. Activate towers and edit variables when needed.
+int t = 0; //tracks used turrets
+static tower tower1, tower2, tower3, tower4, tower5, tower6, tower7, tower8, tower9, tower10, tower11, tower12, tower13, tower14, tower15;
+tower *towers[] = { &tower1, &tower2, &tower3, &tower4, &tower5, &tower6, &tower7, &tower8, &tower9, &tower10, &tower11, &tower12, &tower13, &tower14, &tower15};
+	
+//Array of enemies on current level
+int e = 0;
+static enemy enemy1;
+enemy *enemies[] = {};
+
 //End Shared Variables
 
 //Functions
@@ -201,18 +215,42 @@ int selTurTick(int state){
 		case selTur_wait: break;
 		case selTur_bluePress:
 			//TODO: Place turret. Need to check "currentTurret", player's gold, and current state of game(in game or not)
-			//place blue
-			outgoingByte = outgoingByte | 0x10;
+			//add and place blue
+			towers[t]->cost = 20;
+			if(gold >= towers[t]->cost){
+				towers[t]->attackSpeed = 1;
+				towers[t]->damage = 1;
+				towers[t]->purchased = 1;
+				outgoingByte = outgoingByte | 0x10;
+				gold -= towers[t]->cost;
+				t++;
+			}
 			break;
 		case selTur_blueRelease: break;
 		case selTur_purpPress: 
-			//place purple
-			outgoingByte = outgoingByte | 0x20;
+			//add and place purple
+			towers[t]->cost = 40;
+			if(gold >= towers[t]->cost){
+				towers[t]->attackSpeed = 1;
+				towers[t]->damage = 2;
+				towers[t]->purchased = 1;
+				outgoingByte = outgoingByte | 0x20;
+				gold -= towers[t]->cost;
+				t++;
+			}
 			break;
 		case selTur_purpRelease: break;
 		case selTur_greenPress: 
-			//place green
-			outgoingByte = outgoingByte | 0x30;
+			//add and place green
+			towers[t]->cost = 60;
+			if(gold >= towers[t]->cost){
+				towers[t]->attackSpeed = 2;
+				towers[t]->damage = 1;
+				towers[t]->purchased = 1;
+				outgoingByte = outgoingByte | 0x30;
+				gold -= towers[t]->cost;
+				t++;
+			}
 			break;
 		case selTur_greenRelease: break;
 	}
@@ -359,7 +397,7 @@ int main(void)
 	static task task1, task2, task3, /*task4,*/ task5, task6;
 	task *tasks[] = { &task1, &task2 ,&task3, /*&task4,*/ &task5, &task6};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
-
+	
 	// Task 1
 	task1.state = LCD_initialize;//Task initial state.
 	task1.period = LCDTick_period;//Task Period.
@@ -403,15 +441,6 @@ int main(void)
 	InitADC();
 	initUSART(0);
 	USART_Flush(0);
-	
-	//Array of towers
-	tower *tower[] = {};
-	
-	//Array of enemies on current level
-		//Enemies in array will spawn on map at certain intervals.
-		//Whenever enemy is slain, remove from array and add to gold.
-		//If enemy makes it to the end of the map, take away from user health.
-	enemy *enemy[] = {};
 	
 	unsigned short i; // Scheduler for-loop iterator
 	while(1) {

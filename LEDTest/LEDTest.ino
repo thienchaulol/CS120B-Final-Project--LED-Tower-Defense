@@ -15,6 +15,8 @@ unsigned int inGame = 0; //0 = not in game, 1 = in game
 unsigned int cursorX = 14; //X position of cursor
 unsigned int cursorY = 30; //Y position of cursor
 unsigned char movement = 0x00; //new cursor position
+unsigned char tower = 0x00; //selected turret
+unsigned int t = 0; //position of last active tower. player can have max of 10 towers
 
 void setup() {
   Serial.begin(9600);
@@ -22,44 +24,93 @@ void setup() {
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7));
 }
 
+typedef struct towerLED{
+  int xPos, yPos, type ,active; //blue: type = 1, cyan: type = 2, green: type = 3
+} towerLED;
+
+static towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7, towerLED8, towerLED9, towerLED10;
+towerLED *towerLEDS[] = { &towerLED1, &towerLED2, &towerLED3, &towerLED4, &towerLED5, &towerLED6, &towerLED7, &towerLED8, &towerLED9, &towerLED10 };
+const unsigned short numTowers = sizeof(towerLEDS)/sizeof(towerLED*); 
+
 void moveCursor();
 void levels();
+void drawAllActiveTurrets();
 
-enum moveCursorSM{moveCursor_init, moveCursor_wait, moveCursor_Press, moveCursor_Release} moveCursor_states;
+enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release, placeTowerPress, placeTowerRelease, inGameState /*more states*/} state;
 
-void moveCursorTick(){
-  switch(moveCursor_states){
-    case moveCursor_init: 
-      moveCursor_states = moveCursor_wait; 
-      break;
-    case moveCursor_wait:
-      if(incomingByte << 4 != 0){
-        moveCursor_states = moveCursor_Press;
+void matrixDisplaySMTick(){
+  switch(state){
+    case matrix_init: state = notInGameState; break;
+    case notInGameState:
+      if((incomingByte << 4 != 0) && (incomingByte & 0x80 == 0)){
+        state = moveCursor_Press;
       } else if(incomingByte << 4 == 0){
-        moveCursor_states = moveCursor_wait;
+        state = notInGameState;
+      } else if((incomingByte & 0x30 > 0) && (incomingByte & 0x80 == 0)){
+        state = placeTowerPress;
+      } else if(!inGame){
+        state = notInGameState;
       }
       break;
     case moveCursor_Press:
       if(incomingByte << 4 != 0){
-        moveCursor_states = moveCursor_Press;
         movement = incomingByte;
+        state = moveCursor_Press;
+        //movement = incomingByte;
       } else if(incomingByte << 4 == 0){
-        moveCursor_states = moveCursor_Release;
+        state = moveCursor_Release;
       }
       break;
-    case moveCursor_Release:
-      moveCursor_states = moveCursor_wait; 
+    case moveCursor_Release: state = notInGameState; break;
+    case placeTowerPress:
+      if(incomingByte & 0x30 > 0){
+        tower = incomingByte;
+        state = placeTowerPress;
+      } else if(incomingByte & 0x30 == 0){
+        state = placeTowerRelease;
+      }
+      break;
+    case placeTowerRelease: state = notInGameState; break;
+    case inGameState:
       break;
   }
-  switch(moveCursor_states){
-    case moveCursor_init:
+  switch(state){
+    case matrix_init:
       break;
-    case moveCursor_wait:
+    case notInGameState: 
       break;
     case moveCursor_Press:
       break;
-    case moveCursor_Release: 
-      moveCursor(); 
+    case moveCursor_Release:   
+      if((movement & 0x01) && cursorX > 0){ //move circle up
+        cursorX = cursorX - 1;
+      } else if((movement & 0x02) && cursorX < 15){ //move circle down
+        cursorX = cursorX + 1;
+      } else if((movement & 0x04) && cursorY > 0){ //move circle left
+        cursorY = cursorY - 1;
+      } else if((movement & 0x08) && cursorY < 31){ //move circle right
+        cursorY = cursorY + 1;
+      } else{
+        //don't move circle
+      }
+      break;
+    case placeTowerPress:
+      break;
+    case placeTowerRelease:
+      if(tower > 0){
+        //TODO: Check if current X,Y position is taken by any of the other towers
+        //      so that the player cannot place multiple towers in one spot
+        towerLEDS[t]->xPos = cursorX;
+        towerLEDS[t]->yPos = cursorY;
+        towerLEDS[t]->type = tower;
+        towerLEDS[t]->active = 1;
+        //t = t + 1; //TODO: FIX! This statement causes the LED matrix to not work.
+                     //When fixed, uncomment code in drawAllActiveTowers().
+      } else {
+        //don't place turret
+      }
+      break;
+    case inGameState:
       break;
   }
 }
@@ -69,33 +120,15 @@ void loop() {
     incomingByte = Serial.read();
   }
   matrix.fillScreen(0);
-  //Cursor Functionality. Only works when not in game
-  moveCursorTick();
+  matrixDisplaySMTick();
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw current circle
-  //Level Functionality
-  levels();
-  //TODO: Place Turret Functionality. Only works when not in game
-    //Have struct of turrets. Have function that writes turrets at their
-    //current positions, and colors, after they've been placed from button
+  drawAllActiveTowers(); //have to draw all turrets since there is "matrix.fillScreen(0);" above
+  levels(); //display current level
   //TODO: Implement enemy functionality
   //TODO: Implement turret functionality
 
   //Update Display
   matrix.swapBuffers(false);
-}
-
-void moveCursor(){ //Moving Cursor
-  if((movement & 0x01) && cursorX > 0){ //move circle up
-    cursorX = cursorX - 1;
-  } else if((movement & 0x02) && cursorX < 15){ //move circle down
-    cursorX = cursorX + 1;
-  } else if((movement & 0x04) && cursorY > 0){ //move circle left
-    cursorY = cursorY - 1;
-  } else if((movement & 0x08) && cursorY < 31){ //move circle right
-    cursorY = cursorY + 1;
-  } else{
-    //don't move circle
-  }
 }
 
 void levels(){
@@ -143,3 +176,19 @@ void levels(){
     matrix.drawLine(0, 7, 32, 7, matrix.Color333(7, 0, 0));
   }
 }
+
+void drawAllActiveTowers(){/*
+  //draw all towers from towerLEDS[]
+  for(int i = 0; i < numTowers; i++){
+    if(towerLEDS[i]->active){
+      if(towerLEDS[i]->type == 1){
+        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 0, 7));
+      } else if(towerLEDS[i]->type == 2){
+        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 7));
+      } else if(towerLEDS[i]->type == 3){
+        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 0));
+      }
+    }
+  }*/
+}
+
