@@ -212,23 +212,28 @@ int selTurTick(int state){
 	}
 	switch(state){
 		case selTur_init: break;
-		case selTur_wait: break;
-		case selTur_bluePress:
+		case selTur_wait: 
+			//outgoingByte = outgoingByte & 0xCF;
+			break;
+		case selTur_bluePress: break;
+		case selTur_blueRelease:
 			//TODO: Place turret. Need to check "currentTurret", player's gold, and current state of game(in game or not)
 			//add and place blue
-			towers[t]->cost = 20;
-			if(gold >= towers[t]->cost){
-				towers[t]->attackSpeed = 1;
-				towers[t]->damage = 1;
-				towers[t]->purchased = 1;
+			LCD_DisplayString(1, "C2");
+			//towers[t]->cost = 20;
+			//if(gold >= towers[t]->cost){
+				//towers[t]->attackSpeed = 1;
+				//towers[t]->damage = 1;
+				//towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x10;
-				gold -= towers[t]->cost;
-				t++;
-			}
+				//gold -= towers[t]->cost;
+				//t++;
+			//}
 			break;
-		case selTur_blueRelease: break;
-		case selTur_purpPress: 
+		case selTur_purpPress: break;
+		case selTur_purpRelease: 
 			//add and place purple
+			LCD_DisplayString(1, "C3");
 			towers[t]->cost = 40;
 			if(gold >= towers[t]->cost){
 				towers[t]->attackSpeed = 1;
@@ -239,9 +244,10 @@ int selTurTick(int state){
 				t++;
 			}
 			break;
-		case selTur_purpRelease: break;
-		case selTur_greenPress: 
+		case selTur_greenPress: break;
+		case selTur_greenRelease: 
 			//add and place green
+			LCD_DisplayString(1, "C4");
 			towers[t]->cost = 60;
 			if(gold >= towers[t]->cost){
 				towers[t]->attackSpeed = 2;
@@ -252,7 +258,6 @@ int selTurTick(int state){
 				t++;
 			}
 			break;
-		case selTur_greenRelease: break;
 	}
 	return state;
 }
