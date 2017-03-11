@@ -47,8 +47,15 @@ void matrixDisplaySMTick(){
         //Must do on transition because incomingByte is rewritten too quickly.
         towerLEDS[t]->xPos = cursorX;
         towerLEDS[t]->yPos = cursorY;
-        towerLEDS[t]->type = tower;
+        if(incomingByte >> 4 == 1){ //Blue tower
+          towerLEDS[t]->type = 1;  
+        } else if(incomingByte >> 4 == 2){ //Cyan tower
+          towerLEDS[t]->type = 2;
+        } else if(incomingByte >> 4 == 3){ //Green tower
+          towerLEDS[t]->type = 3;
+        }
         towerLEDS[t]->active = 1;
+        
         //TODO: Check if current X,Y position is taken by any of the other towers
         //      so that the player cannot place multiple towers in one spot
         //t++; //TODO: FIX! This statement causes the LED matrix to not work.
@@ -110,7 +117,13 @@ void loop() {
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw current circle
   //drawAllActiveTowers(); //have to draw all turrets since there is "matrix.fillScreen(0);" above
   if(towerLEDS[t]->active != 0){ //Temporary conditional. To be replaced by drawAllActiveTowers()
-    matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 0));
+    if(towerLEDS[t]->type == 1){
+      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 0, 7));
+    } else if(towerLEDS[t]->type == 2){
+      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 7));
+    } else if(towerLEDS[t]->type == 3){
+      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 0)); 
+    }
   }
   levels(); //display current level
   //TODO: Implement enemy functionality

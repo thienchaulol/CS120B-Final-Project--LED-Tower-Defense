@@ -17,7 +17,7 @@
 #include <string.h>
 
 
-//Shared Variables
+//------------------------------------Shared Variables
 const unsigned char* playerInfo = "Gold:20  Stage:1Health:10"; //LCD Display variable
 unsigned char outgoingByte = 0x00; //USART0 outgoing byte
 unsigned char outgoingByte1 = 0x00; //USART1 outgoing byte
@@ -38,7 +38,6 @@ unsigned char C4; //Select "green" turret
 unsigned char C5; //Reset button
 int x2, y2; //Coordinates for 2-axis joystick
 char a[20], b[20]; //Used to test if 2-axis joystick works.
-unsigned char joystickMovement; //lower 4 bits of outgoing byte to Arduino Uno
 
 	
 //Array of towers
@@ -53,9 +52,9 @@ int e = 0;
 static enemy enemy1;
 enemy *enemies[] = {};
 
-//End Shared Variables
+//------------------------------------End Shared Variables
 
-//Functions
+//------------------------------------Functions
 
 //Takes gold, level, and health variables and returns
 //string to display with inputs
@@ -112,9 +111,9 @@ int readadc(int ch)
 	while((ADCSRA)&(1<<ADSC));    //WAIT UNTIL CONVERSION IS COMPLETE
 	return(ADC);        //RETURN ADC VALUE
 }
-//End functions
+//------------------------------------End functions
 
-//FSMs
+//------------------------------------FSMs
 
 enum startAndPause_States{sNp_init, sNp_wait, sNp_startPress, sNp_startRelease, sNp_pausePress, sNp_pauseRelease};
 
@@ -234,29 +233,29 @@ int selTurTick(int state){
 		case selTur_purpRelease: 
 			//add and place purple
 			LCD_DisplayString(1, "C3");
-			towers[t]->cost = 40;
-			if(gold >= towers[t]->cost){
-				towers[t]->attackSpeed = 1;
-				towers[t]->damage = 2;
-				towers[t]->purchased = 1;
+			//towers[t]->cost = 40;
+			//if(gold >= towers[t]->cost){
+				//towers[t]->attackSpeed = 1;
+				//towers[t]->damage = 2;
+				//towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x20;
-				gold -= towers[t]->cost;
-				t++;
-			}
+				//gold -= towers[t]->cost;
+				//t++;
+			//}
 			break;
 		case selTur_greenPress: break;
 		case selTur_greenRelease: 
 			//add and place green
 			LCD_DisplayString(1, "C4");
-			towers[t]->cost = 60;
-			if(gold >= towers[t]->cost){
-				towers[t]->attackSpeed = 2;
-				towers[t]->damage = 1;
-				towers[t]->purchased = 1;
+			//towers[t]->cost = 60;
+			//if(gold >= towers[t]->cost){
+				//towers[t]->attackSpeed = 2;
+				//towers[t]->damage = 1;
+				//towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x30;
-				gold -= towers[t]->cost;
-				t++;
-			}
+				//gold -= towers[t]->cost;
+				//t++;
+			//}
 			break;
 	}
 	return state;
@@ -281,24 +280,19 @@ int ADCTick(int state){
 			//LCD_DisplayString(17, itoa(y2, b, 10));
 			if(y2 > 150){
 				LCD_DisplayString(1, "right");
-				joystickMovement = 0x08;
-				outgoingByte = outgoingByte | joystickMovement;
+				outgoingByte = outgoingByte | 0x08;
 			} else if(y2 < -150){
 				LCD_DisplayString(1, "left");
-				joystickMovement = 0x04;
-				outgoingByte = outgoingByte | joystickMovement;
+				outgoingByte = outgoingByte | 0x04;
 			} else if(x2 < -150){
 				LCD_DisplayString(1, "up");
-				joystickMovement = 0x01;
-				outgoingByte = outgoingByte | joystickMovement;
+				outgoingByte = outgoingByte | 0x01;
 			} else if(x2 > 150){
 				LCD_DisplayString(1, "down");
-				joystickMovement = 0x02;
-				outgoingByte = outgoingByte | joystickMovement;
+				outgoingByte = outgoingByte | 0x02;
 			} else{
 				LCD_DisplayString(1, "no input");
-				joystickMovement = 0x00;
-				outgoingByte = outgoingByte | joystickMovement;
+				outgoingByte = outgoingByte | 0x00;
 			}
 			break;
 	}
@@ -361,7 +355,7 @@ int usartSMTick(int state){
 	return state;
 }
 
-//End FSMs
+//------------------------------------End FSMs
 
 int main(void)
 {
