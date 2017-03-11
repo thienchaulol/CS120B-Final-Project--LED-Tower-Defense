@@ -324,8 +324,8 @@ int LCDTick(int state){
 		case LCD_info:
 			//update info
 			if(USART_HasReceived(0)){
-				receivedByte = USART_Receive(1);
-				if(receivedByte << 2 == 20){
+				receivedByte = USART_Receive(0); //check USART0
+				if(receivedByte << 2 == 20){ //TODO: Why left shift by 2?
 					LCD_DisplayString(1, updatePlayerInfo(gold - 20, level, health));
 				} else if(receivedByte << 2 == 40){
 					LCD_DisplayString(1, updatePlayerInfo(gold - 40, level, health));
