@@ -21,7 +21,8 @@
 const unsigned char* playerInfo = "Gold:20  Stage:1Health:10"; //LCD Display variable
 unsigned char outgoingByte = 0x00; //USART0 outgoing byte
 unsigned char outgoingByte1 = 0x00; //USART1 outgoing byte
-int gold = 20; //Player's starting gold
+unsigned char receivedByte = 0x00; //USART0 received byte
+int gold = 240; //Player's starting gold
 int health = 10; //Player's starting health
 unsigned char A2; //Used to test if LCD Display works.
 unsigned char level = 0x00; //Player's current level
@@ -75,7 +76,7 @@ char* updatePlayerInfo(int newGold, int newLevel, int newHealth){
 
 	//Stage
 	if(newGold < 10){ //gold will be 1 digit
-		char temp2[20] = "    Stage:"; 
+		char temp2[20] = "   Stage:"; 
 		strcpy(temp, temp2);
 	} else if(newGold >= 10 && newGold < 100){ //gold will be 2 digits
 		char temp2[20] = "  Stage:";
@@ -218,44 +219,44 @@ int selTurTick(int state){
 		case selTur_blueRelease:
 			//TODO: Place turret. Need to check "currentTurret", player's gold, and current state of game(in game or not)
 			//add and place blue
-			LCD_DisplayString(1, "C2");
-			//towers[t]->cost = 20;
-			//if(gold >= towers[t]->cost){
-				//towers[t]->attackSpeed = 1;
-				//towers[t]->damage = 1;
-				//towers[t]->purchased = 1;
+			//LCD_DisplayString(25, "C2");
+			towers[t]->cost = 20;
+			if(gold >= towers[t]->cost){
+				towers[t]->attackSpeed = 1;
+				towers[t]->damage = 1;
+				towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x10;
-				//gold -= towers[t]->cost;
-				//t++;
-			//}
+				gold -= towers[t]->cost;
+				t++;
+			}
 			break;
 		case selTur_purpPress: break;
 		case selTur_purpRelease: 
 			//add and place purple
-			LCD_DisplayString(1, "C3");
-			//towers[t]->cost = 40;
-			//if(gold >= towers[t]->cost){
-				//towers[t]->attackSpeed = 1;
-				//towers[t]->damage = 2;
-				//towers[t]->purchased = 1;
+			//LCD_DisplayString(25, "C3");
+			towers[t]->cost = 40;
+			if(gold >= towers[t]->cost){
+				towers[t]->attackSpeed = 1;
+				towers[t]->damage = 2;
+				towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x20;
-				//gold -= towers[t]->cost;
-				//t++;
-			//}
+				gold -= towers[t]->cost;
+				t++;
+			}
 			break;
 		case selTur_greenPress: break;
 		case selTur_greenRelease: 
 			//add and place green
-			LCD_DisplayString(1, "C4");
-			//towers[t]->cost = 60;
-			//if(gold >= towers[t]->cost){
-				//towers[t]->attackSpeed = 2;
-				//towers[t]->damage = 1;
-				//towers[t]->purchased = 1;
+			//LCD_DisplayString(25, "C4");
+			towers[t]->cost = 60;
+			if(gold >= towers[t]->cost){
+				towers[t]->attackSpeed = 2;
+				towers[t]->damage = 1;
+				towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x30;
-				//gold -= towers[t]->cost;
-				//t++;
-			//}
+				gold -= towers[t]->cost;
+				t++;
+			}
 			break;
 	}
 	return state;
@@ -271,7 +272,7 @@ int ADCTick(int state){
 	switch(state){
 		case ADC_initialize: break;
 		case ADC_display:
-			LCD_Cursor(1);
+			//LCD_Cursor(1);
 			x2 = readadc(0);
 			y2 = readadc(1);
 			x2 = x2 - 512;
@@ -279,19 +280,19 @@ int ADCTick(int state){
 			//LCD_DisplayString(1, itoa(x2, a, 10)); //Must disabled ClearScreen() in LCD_DisplayString() in io.c to see coordinates.
 			//LCD_DisplayString(17, itoa(y2, b, 10));
 			if(y2 > 150){
-				LCD_DisplayString(1, "right");
+				//LCD_DisplayString(25, "right");
 				outgoingByte = outgoingByte | 0x08;
 			} else if(y2 < -150){
-				LCD_DisplayString(1, "left");
+				//LCD_DisplayString(25, "left");
 				outgoingByte = outgoingByte | 0x04;
 			} else if(x2 < -150){
-				LCD_DisplayString(1, "up");
+				//LCD_DisplayString(25, "up");
 				outgoingByte = outgoingByte | 0x01;
 			} else if(x2 > 150){
-				LCD_DisplayString(1, "down");
+				//LCD_DisplayString(25, "down");
 				outgoingByte = outgoingByte | 0x02;
 			} else{
-				LCD_DisplayString(1, "no input");
+				//LCD_DisplayString(25, "no input");
 				outgoingByte = outgoingByte | 0x00;
 			}
 			break;
@@ -299,37 +300,50 @@ int ADCTick(int state){
 	return state;
 }
 
-enum LCD_States{LCD_initialize, LCD_info, LCD_updatePress, LCD_updateRelease, LCD_win, LCD_loss};
+enum LCD_States{LCD_initialize, LCD_info, /*LCD_updatePress, LCD_updateRelease,*/ LCD_win, LCD_loss};
 
 int LCDTick(int state){
 	switch(state){
 		case LCD_initialize: state = LCD_info; break;
 		case LCD_info:
-			if(A2){ state = LCD_updatePress; } 
-			else if(level == 3){ state = LCD_win; } 
+			//if(A2){ state = LCD_updatePress; } 
+			if(level == 3){ state = LCD_win; } 
 			else if(health == 0){ state = LCD_loss; } 
 			else { state = LCD_info; }
 			break;
-		case LCD_updatePress:
+		/*case LCD_updatePress:
 			if(A2){ state = LCD_updatePress; } 
 			else if(!A2){ state = LCD_updateRelease; }
 			break;
-		case LCD_updateRelease: state = LCD_info; break;
+		case LCD_updateRelease: state = LCD_info; break;*/
 		case LCD_win: break;
 		case LCD_loss: break;
 	}
 	switch(state){
 		case LCD_initialize: break;
-		case LCD_info: break;
-		case LCD_updatePress: break;
+		case LCD_info:
+			//update info
+			if(USART_HasReceived(0)){
+				receivedByte = USART_Receive(1);
+				if(receivedByte << 2 == 20){
+					LCD_DisplayString(1, updatePlayerInfo(gold - 20, level, health));
+				} else if(receivedByte << 2 == 40){
+					LCD_DisplayString(1, updatePlayerInfo(gold - 40, level, health));
+				} else if(receivedByte << 2 == 60){
+					LCD_DisplayString(1, updatePlayerInfo(gold - 60, level, health));
+				}
+			}
+			LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
+			break;
+		/*case LCD_updatePress: break;
 		case LCD_updateRelease:
-			++gold;
-			++level;
-			++health;
+			//++gold;
+			//++level;
+			//++health;
 			//LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
 				//is it possible for the task scheduler to move on to the next state
 				//before the data has finished updating?
-			break;
+			break;*/
 		case LCD_win: break;
 		case LCD_loss: break;
 	}
@@ -445,7 +459,7 @@ int main(void)
 	while(1) {
 		A2 = ~PINA & 0x04;
 		C0 = ~PINC & 0x01; //Start/Pause button
-		C1 = ~PINC & 0x02; //Place turret button
+		//C1 = ~PINC & 0x02; //Place turret button
 		C2 = ~PINC & 0x04; //Select "blue" turret //Best turret
 		C3 = ~PINC & 0x08; //Select "purple" turret //Second best turret
 		C4 = ~PINC & 0x10; //Select "green" turret //Third best turret

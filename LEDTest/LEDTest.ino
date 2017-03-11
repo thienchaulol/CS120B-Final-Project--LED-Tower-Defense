@@ -17,6 +17,7 @@ unsigned int cursorY = 30; //Y position of cursor
 unsigned char movement = 0x00; //new cursor position
 unsigned char tower = 0x00; //selected turret
 unsigned int t = 0; //position of last active tower. player can have max of 10 towers
+unsigned int x = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -44,14 +45,20 @@ void matrixDisplaySMTick(){
     case notInGameState:
       //TODO: Make transitions to states "inGame" and "!inGame" specific.
       if((incomingByte >> 4 != 0)){ //Placing tower
-        //Must do on transition because incomingByte is rewritten too quickly.
+        //Must do on transition(Mealy action) because "incomingByte" is rewritten too quickly.
         towerLEDS[t]->xPos = cursorX;
         towerLEDS[t]->yPos = cursorY;
         if(incomingByte >> 4 == 1){ //Blue tower
+          //Send gold cost to ATMega1284 (20 -> 0001 0100 -> 0x14)
+          Serial.write(20);
           towerLEDS[t]->type = 1;  
         } else if(incomingByte >> 4 == 2){ //Cyan tower
+          //Send gold cost to ATMega1284 (40 -> 0010 1000 -> 0x28)
+          Serial.write(40);
           towerLEDS[t]->type = 2;
         } else if(incomingByte >> 4 == 3){ //Green tower
+          //Send gold cost to ATMega1284 (60 -> 0011 1100 -> 0x3C)
+          Serial.write(60);
           towerLEDS[t]->type = 3;
         }
         towerLEDS[t]->active = 1;
