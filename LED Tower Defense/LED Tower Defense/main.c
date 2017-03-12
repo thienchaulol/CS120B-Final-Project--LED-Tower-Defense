@@ -25,7 +25,7 @@ unsigned char receivedByte = 0x00; //USART0 received byte
 int gold = 240; //Player's starting gold
 int health = 10; //Player's starting health
 unsigned char A2; //Used to test if LCD Display works.
-unsigned char level = 0x00; //Player's current level
+int level = 0x01; //Player's current level
 unsigned short x; //variable to record ADC value from 2-axis joystick
 unsigned char inGame; //true/false value that checks if user is "in game". TODO: UART 
 					  //when user is "in game", user cannot input any values; user will watch until level finish or loss
@@ -195,18 +195,18 @@ int selTurTick(int state){
 			else {state = selTur_wait; }
 			break;
 		case selTur_bluePress:
-			if(C2){ state = selTur_bluePress; }
-			else if(!C2){ state = selTur_blueRelease; }
+			if(C2 && !inGame){ state = selTur_bluePress; }
+			else if(!C2 && !inGame){ state = selTur_blueRelease; }
 			break;
 		case selTur_blueRelease: state = selTur_wait; break;
 		case selTur_purpPress:
-			if(C3){ state = selTur_purpPress; }
-			else if(!C3){ state = selTur_purpRelease; }
+			if(C3 && !inGame){ state = selTur_purpPress; }
+			else if(!C3 && !inGame){ state = selTur_purpRelease; }
 			break;
 		case selTur_purpRelease: state = selTur_wait; break;
 		case selTur_greenPress:
-			if(C4){ state = selTur_greenPress; }
-			else if(!C4) { state = selTur_greenRelease; }
+			if(C4 && !inGame){ state = selTur_greenPress; }
+			else if(!C4 && !inGame) { state = selTur_greenRelease; }
 			break;
 		case selTur_greenRelease: state = selTur_wait; break;
 	}
@@ -362,7 +362,106 @@ int usartSMTick(int state){
 		case usartSM_check0:
 			if(USART_IsSendReady(0)){ //if the USART is ready
 				USART_Send(outgoingByte, 0); //send USART 0
-				outgoingByte = 0x00; //reset outgoingByte after being sent
+				outgoingByte = outgoingByte & 0x80; //Reset bits 0-6 after being sent. Keep track of 7th bit to see if inGame or not
+			}
+			break;
+	}
+	return state;
+}
+
+int spawnedEnemies, enemyCount, timeCount;
+
+//Deals with enemies and current level
+enum enemySM{enemy_init, enemy_wait, enemy_spawn, enemy_spawnWait, enemy_levelComplete};
+
+int enemySMTick(int state){
+	switch(state){
+		case enemy_init:
+			state = enemy_wait;
+			break;
+		case enemy_wait:
+			//TODO: Win message
+			/*if(level == 3){
+				//Display Win Message
+				//End Game
+			}*/
+			if(C0){
+				//LCD_DisplayString(1, "C0");
+				inGame = 1;
+				state = enemy_spawn;
+			} else if(!C0){
+				state = enemy_wait;
+			} else{
+				state = enemy_wait;
+			}
+			break;
+		case enemy_spawn:
+			if(spawnedEnemies < enemyCount){
+				state = enemy_spawnWait; //Wait 1.5 seconds to spawn new enemy
+			} else if(spawnedEnemies >= enemyCount){
+				state = enemy_levelComplete;
+			}
+			break;
+		case enemy_spawnWait:
+			if(timeCount < 15){
+				state = enemy_spawnWait;
+			} else if(timeCount >= 15){
+				timeCount = 0;
+				state = enemy_spawn;
+			}
+			break;
+		case enemy_levelComplete:
+			state = enemy_init;
+			break;
+	}
+	switch(state){
+		case enemy_init:
+			enemyCount = spawnedEnemies = enemyCount = 0;
+			break;
+		case enemy_wait:
+			break;
+		case enemy_spawn:
+			//Send info to USART about enemies.
+			//TODO: Check if player's health reaches 0 and add code accordingly.
+			if(level == 1){ 
+				//Bit 7 used to check inGame status. Bits 5-4 for level.
+				//Bits 3-2 for enemy type. Bits 1-0 for enemy health.
+				enemyCount = 10;
+				outgoingByte |= 0x95; // 1001 0101
+			} else if(level == 2){
+				enemyCount = 12;
+				outgoingByte |= 0xAA; // 1010 1010
+			} else if(level == 3){
+				enemyCount == 15;
+				outgoingByte |= 0xBF; // 1011 1111
+			}
+			spawnedEnemies++; //Hoping to send "enemyCount" amount of enemies.
+			break;
+		case enemy_spawnWait:
+			//outgoingByte &= 0x80; //Don't send anything.
+			timeCount++;
+			break;
+		case enemy_levelComplete:
+			outgoingByte &= 0x7F; //Set inGame bit to 0
+			//Add gold
+			if(level == 1){
+				//Add 5 Gold * enemyCount
+				//gold += 5*enemyCount;
+				//level++;
+				updatePlayerInfo(gold+= 5*enemyCount, ++level, health);
+				inGame = 0;
+			} else if(level == 2){
+				//Add 10 Gold * enemyCount
+				//gold += 10*enemyCount;
+				//level++;
+				updatePlayerInfo(gold+= 10*enemyCount, ++level, health);
+				inGame = 0;
+			} else if(level == 3){
+				//Add 15 Gold * enemyCount
+				//gold += 15*enemyCount;
+				updatePlayerInfo(gold+= 15*enemyCount, ++level, health);
+				inGame = 0;
+				//Display Win Message
 			}
 			break;
 	}
@@ -386,6 +485,7 @@ int main(void)
 	//unsigned long int placeTurretTick_calc = 200;
 	unsigned long int selTurTick_calc = 200;
 	unsigned long int usartSMTick_calc = 100;
+	unsigned long int enemySMTick_calc = 100;
 	
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
@@ -394,6 +494,7 @@ int main(void)
 	//tmpGCD = findGCD(tmpGCD, placeTurretTick_calc);
 	tmpGCD = findGCD(tmpGCD, selTurTick_calc);
 	tmpGCD = findGCD(tmpGCD, usartSMTick_calc);
+	tmpGCD = findGCD(tmpGCD, enemySMTick_calc);
 
 	//Greatest common divisor for all tasks or smallest time unit for tasks.
 	unsigned long int GCD = tmpGCD;
@@ -405,10 +506,11 @@ int main(void)
 	//unsigned long int placeTurretTick_period = placeTurretTick_calc/GCD;
 	unsigned long int selTurTick_period = selTurTick_calc/GCD;
 	unsigned long int usartSMTick_period = usartSMTick_calc/GCD;
+	unsigned long int enemySMTick_period = enemySMTick_calc/GCD;
 
 	//Declare an array of tasks
-	static task task1, task2, task3, /*task4,*/ task5, task6;
-	task *tasks[] = { &task1, &task2 ,&task3, /*&task4,*/ &task5, &task6};
+	static task task1, task2, task3, /*task4,*/ task5, task6, task7;
+	task *tasks[] = { &task1, &task2 ,&task3, /*&task4,*/ &task5, &task6, &task7};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 	
 	// Task 1
@@ -446,6 +548,12 @@ int main(void)
 	task6.period = usartSMTick_period;
 	task6.elapsedTime = usartSMTick_period;
 	task6.TickFct = &usartSMTick;
+	
+	//Task 7
+	task7.state = enemy_init;
+	task7.period = enemySMTick_period;
+	task7.elapsedTime = enemySMTick_period;
+	task7.TickFct = &enemySMTick;
 	
 	TimerSet(GCD);
 	TimerOn();
