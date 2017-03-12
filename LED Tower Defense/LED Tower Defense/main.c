@@ -390,6 +390,7 @@ int enemySMTick(int state){
 				inGame = 1;
 				state = enemy_spawn;
 			} else if(!C0){
+				inGame = 0;
 				state = enemy_wait;
 			} else{
 				state = enemy_wait;

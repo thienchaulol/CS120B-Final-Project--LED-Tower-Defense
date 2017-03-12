@@ -89,11 +89,13 @@ void matrixDisplaySMTick(){
           state = notInGameState;
         } else if((incomingByte << 4 != 0)){ // Moving cursor
           state = moveCursor_Press;
-        } else if(!inGame){
-          state = notInGameState;
-        } else {
-          state = notInGameState;
         }
+      }
+      else if(inGame){
+        state = inGameState;
+      }
+      else {
+        state = notInGameState;
       }
       break;
     case moveCursor_Press:
@@ -111,6 +113,7 @@ void matrixDisplaySMTick(){
       break;
     case inGameState:
       //TODO: Spawn enemies
+      matrix.drawCircle(1, 1, 1,matrix.Color333(7, 7, 7));
       if(inGame){
         state = inGameState;
       } else if(!inGame){
@@ -163,7 +166,11 @@ void loop() {
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw current circle
   //drawAllActiveTowers(); //have to draw all turrets since there is "matrix.fillScreen(0);" above
                            //draws all active towers and their corresponding effects
-  drawAllActiveEnemies();
+  //drawAllActiveEnemies();
+  //if(/*(incomingByte << 4 == 5) && */inGame){ //Level 1 Enemies
+    //Spawn pink enemy from enemyLEDS[]
+    //matrix.drawCircle(1, 1, 1,matrix.Color333(7, 7, 7));
+  //}
   if(towerLEDS[t]->active != 0){ //Temporary conditional. To be replaced by drawAllActiveTowers()
     if(towerLEDS[t]->type == 1){
       matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 0, 7));
