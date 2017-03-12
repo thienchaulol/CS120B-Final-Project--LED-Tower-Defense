@@ -42,7 +42,6 @@ char a[20], b[20]; //Used to test if 2-axis joystick works.
 
 	
 //Array of towers
-//CANNOT ADD TO ARRAY DURING RUNTIME.
 //Allocate array of towers at beginning. Activate towers and edit variables when needed.
 int t = 0; //tracks used turrets
 static tower tower1, tower2, tower3, tower4, tower5, tower6, tower7, tower8, tower9, tower10, tower11, tower12, tower13, tower14, tower15;
@@ -60,10 +59,6 @@ enemy *enemies[] = {};
 //Takes gold, level, and health variables and returns
 //string to display with inputs
 char* updatePlayerInfo(int newGold, int newLevel, int newHealth){
-	//Writing to char* is ILLEGAL
-	//http://stackoverflow.com/questions/1704407/what-is-the-difference-between-char-s-and-char-s-in-c
-	//Going to use char[] instead of char* even though LCD_DisplayString() takes in a char*
-		//char[] is essentially pointer...anyways..
 	char updatedInfo[33] = "Gold:";
 	char temp[20];
 	char buffer[20];
@@ -151,35 +146,7 @@ int sNpTick(int state){
 	}
 	return state;
 }
-/*
-enum placeTurret_States{placeTurret_init, placeTurret_wait, placeTurret_Press, placeTurret_Release};
 
-int placeTurretTick(int state){
-	switch(state){
-		case placeTurret_init: state = placeTurret_wait; break;
-		case placeTurret_wait:
-			if(C1 && !inGame){ state = placeTurret_Press; } 
-			else { state = placeTurret_wait; }
-			break;
-		case placeTurret_Press:
-			if(C1){ state = placeTurret_Press; } 
-			else if(!C1){ state = placeTurret_Release; }
-			break;
-		case placeTurret_Release: state = placeTurret_wait; break;
-	}
-	switch(state){
-		case placeTurret_init: break;
-		case placeTurret_wait: 
-			//outgoingByte = outgoingByte & 0x7F; //Turn 7th bit low
-			break;
-		case placeTurret_Press: break;
-		case placeTurret_Release:
-			//outgoingByte = outgoingByte | 0x80; //Turn 7th bit high
-			break;
-	}
-	return state;
-}
-*/
 //Maybe have only one type of turret due to time constraints.
 enum selectTurret_States{selTur_init, selTur_wait, selTur_bluePress, selTur_blueRelease, selTur_purpPress, selTur_purpRelease, selTur_greenPress, selTur_greenRelease};
 
@@ -217,13 +184,9 @@ int selTurTick(int state){
 			break;
 		case selTur_bluePress: break;
 		case selTur_blueRelease:
-			//TODO: Place turret. Need to check "currentTurret", player's gold, and current state of game(in game or not)
-			//add and place blue
 			//LCD_DisplayString(25, "C2");
 			towers[t]->cost = 20;
 			if(gold >= towers[t]->cost){
-				towers[t]->attackSpeed = 1;
-				towers[t]->damage = 1;
 				towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x10;
 				gold -= towers[t]->cost;
@@ -231,13 +194,10 @@ int selTurTick(int state){
 			}
 			break;
 		case selTur_purpPress: break;
-		case selTur_purpRelease: 
-			//add and place purple
+		case selTur_purpRelease:
 			//LCD_DisplayString(25, "C3");
 			towers[t]->cost = 40;
 			if(gold >= towers[t]->cost){
-				towers[t]->attackSpeed = 1;
-				towers[t]->damage = 2;
 				towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x20;
 				gold -= towers[t]->cost;
@@ -250,8 +210,6 @@ int selTurTick(int state){
 			//LCD_DisplayString(25, "C4");
 			towers[t]->cost = 60;
 			if(gold >= towers[t]->cost){
-				towers[t]->attackSpeed = 2;
-				towers[t]->damage = 1;
 				towers[t]->purchased = 1;
 				outgoingByte = outgoingByte | 0x30;
 				gold -= towers[t]->cost;
@@ -289,7 +247,7 @@ int ADCTick(int state){
 				//LCD_DisplayString(25, "up");
 				outgoingByte = outgoingByte | 0x01;
 			} else if(x2 > 150){
-				//LCD_DisplayString(25, "down");
+				//LCD_DisplayString(25, "down");6
 				outgoingByte = outgoingByte | 0x02;
 			} else{
 				//LCD_DisplayString(25, "no input");
@@ -300,30 +258,23 @@ int ADCTick(int state){
 	return state;
 }
 
-enum LCD_States{LCD_initialize, LCD_info, /*LCD_updatePress, LCD_updateRelease,*/ LCD_win, LCD_loss};
+enum LCD_States{LCD_initialize, LCD_info, LCD_win, LCD_loss};
 
 int LCDTick(int state){
 	switch(state){
 		case LCD_initialize: state = LCD_info; break;
 		case LCD_info:
-			//if(A2){ state = LCD_updatePress; } 
 			if(level == 3){ state = LCD_win; } 
 			else if(health == 0){ state = LCD_loss; } 
 			else { state = LCD_info; }
 			break;
-		/*case LCD_updatePress:
-			if(A2){ state = LCD_updatePress; } 
-			else if(!A2){ state = LCD_updateRelease; }
-			break;
-		case LCD_updateRelease: state = LCD_info; break;*/
 		case LCD_win: break;
 		case LCD_loss: break;
 	}
 	switch(state){
 		case LCD_initialize: break;
 		case LCD_info:
-			//update info
-			if(USART_HasReceived(0)){
+			if(USART_HasReceived(0)){ //update info
 				receivedByte = USART_Receive(0); //check USART0
 				if(receivedByte << 2 == 20){ //TODO: Why left shift by 2?
 					LCD_DisplayString(1, updatePlayerInfo(gold - 20, level, health));
@@ -335,15 +286,6 @@ int LCDTick(int state){
 			}
 			LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
 			break;
-		/*case LCD_updatePress: break;
-		case LCD_updateRelease:
-			//++gold;
-			//++level;
-			//++health;
-			//LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
-				//is it possible for the task scheduler to move on to the next state
-				//before the data has finished updating?
-			break;*/
 		case LCD_win: break;
 		case LCD_loss: break;
 	}
@@ -444,25 +386,15 @@ int enemySMTick(int state){
 			break;
 		case enemy_levelComplete:
 			outgoingByte &= 0x7F; //Set inGame bit to 0
-			//Add gold
 			if(level == 1){
-				//Add 5 Gold * enemyCount
-				//gold += 5*enemyCount;
-				//level++;
 				updatePlayerInfo(gold+= 5*enemyCount, ++level, health);
 				inGame = 0;
 			} else if(level == 2){
-				//Add 10 Gold * enemyCount
-				//gold += 10*enemyCount;
-				//level++;
 				updatePlayerInfo(gold+= 10*enemyCount, ++level, health);
 				inGame = 0;
 			} else if(level == 3){
-				//Add 15 Gold * enemyCount
-				//gold += 15*enemyCount;
 				updatePlayerInfo(gold+= 15*enemyCount, ++level, health);
-				inGame = 0;
-				//Display Win Message
+				inGame = 0; //Display Win Message
 			}
 			break;
 	}
@@ -483,7 +415,6 @@ int main(void)
 	unsigned long int LCDTick_calc = 500;
 	unsigned long int ADCTick_calc = 200;
 	unsigned long int sNpTick_calc = 200;
-	//unsigned long int placeTurretTick_calc = 200;
 	unsigned long int selTurTick_calc = 200;
 	unsigned long int usartSMTick_calc = 100;
 	unsigned long int enemySMTick_calc = 100;
@@ -492,7 +423,6 @@ int main(void)
 	unsigned long int tmpGCD = 1;
 	tmpGCD = findGCD(LCDTick_calc, ADCTick_calc);
 	tmpGCD = findGCD(tmpGCD, sNpTick_calc);
-	//tmpGCD = findGCD(tmpGCD, placeTurretTick_calc);
 	tmpGCD = findGCD(tmpGCD, selTurTick_calc);
 	tmpGCD = findGCD(tmpGCD, usartSMTick_calc);
 	tmpGCD = findGCD(tmpGCD, enemySMTick_calc);
@@ -504,7 +434,6 @@ int main(void)
 	unsigned long int LCDTick_period = LCDTick_calc/GCD;
 	unsigned long int ADCTick_period = ADCTick_calc/GCD;
 	unsigned long int sNpTick_period = sNpTick_calc/GCD;
-	//unsigned long int placeTurretTick_period = placeTurretTick_calc/GCD;
 	unsigned long int selTurTick_period = selTurTick_calc/GCD;
 	unsigned long int usartSMTick_period = usartSMTick_calc/GCD;
 	unsigned long int enemySMTick_period = enemySMTick_calc/GCD;
@@ -531,13 +460,7 @@ int main(void)
 	task3.period = sNpTick_period;
 	task3.elapsedTime = sNpTick_period;
 	task3.TickFct = &sNpTick;
-	/*
-	// Task 4
-	task4.state = placeTurret_init;
-	task4.period = placeTurretTick_period;
-	task4.elapsedTime = placeTurretTick_period;
-	task4.TickFct = &placeTurretTick;
-	*/
+	
 	// Task 5
 	task5.state = selTur_init;
 	task5.period = selTurTick_period;
@@ -568,7 +491,6 @@ int main(void)
 	while(1) {
 		A2 = ~PINA & 0x04;
 		C0 = ~PINC & 0x01; //Start/Pause button
-		//C1 = ~PINC & 0x02; //Place turret button
 		C2 = ~PINC & 0x04; //Select "blue" turret //Best turret
 		C3 = ~PINC & 0x08; //Select "purple" turret //Second best turret
 		C4 = ~PINC & 0x10; //Select "green" turret //Third best turret
