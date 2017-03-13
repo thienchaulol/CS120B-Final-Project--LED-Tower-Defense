@@ -69,11 +69,11 @@ void loop() {
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draw cursor position
   drawAllActiveTowers(); //Draws all purchased towers
 
-  if(enemyOneSpawned) { drawEnemyOne(); } // Each enemy function is called 1.5 seconds after the other.
-  /*if(enemyTwoSpawned) { drawEnemyTwo(); }
+  if(enemyOneSpawned) { drawEnemyOne(); }
+  if(enemyTwoSpawned) { drawEnemyTwo(); }
   if(enemyThreeSpawned){ drawEnemyThree(); }
   if(enemyFourSpawned) { drawEnemyFour(); }
-  if(enemyFiveSpawned) { drawEnemyFive(); }*/
+  if(enemyFiveSpawned) { drawEnemyFive(); }
   
   levels(); //Display current level
   
@@ -140,10 +140,8 @@ void matrixDisplaySMTick(){
       break;
     case enemy_checkUSART: break;
     case enemy_writeEnemies:
-      //TODO: Depending on the level, the enemies will "follow" a different path.
-      //      Each enemy function is called 1.5 seconds after the other.
-      enemyOneSpawned = 1;
-      //enemyTwoSpawned = 1;
+      //Each enemy "bool" is called 1.5 seconds after the other.
+      if(enemyOneSpawned == 0){ enemyOneSpawned = 1; }
       //if(enemyOneSpawned == 1){ enemyTwoSpawned = 1; }
       //if(enemyTwoSpawned) { enemyThreeSpawned = 1; }
       //if(enemyThreeSpawned){ enemyFourSpawned = 1; }
@@ -153,21 +151,21 @@ void matrixDisplaySMTick(){
 }
 
 unsigned char ActiveEnemies; //Returns 0 if there are no enemies on map, returns 1 if there are enemies on map
-
+//TODO: Depending on the level, the enemies will "follow" a different path.
 void drawEnemyOne(){
-  
+  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
 }
 void drawEnemyTwo(){
-  
+  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
 }
 void drawEnemyThree(){
-  
+  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
 }
 void drawEnemyFour(){
-  
+  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
 }
 void drawEnemyFive(){
-  
+  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
 }
 
 void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
