@@ -68,15 +68,16 @@ void loop() {
     else if(incomingByte & 0x80 == 1){ inGame = 1; }
   }
   matrix.fillScreen(0);
+  
   matrixDisplaySMTick();
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw cursor position
   drawAllActiveTowers(); //draws all purchased towers
   levels(); //display current level
+  
   matrix.swapBuffers(false); //Update Display
 }
 
 //------------------------Functions
-
 void matrixDisplaySMTick(){
   switch(state){ //Transitions
     case matrix_init: state = notInGameState; break;
@@ -89,7 +90,6 @@ void matrixDisplaySMTick(){
           //      so that the player cannot place multiple towers in one spot.
           //      Make function: checkCurrentTowerLED(), iterates through towerLEDS[] and returns 0 if
           //      there is no tower at current x and y.
-          towerLEDS[t]->effectRadius = 1;
           if(incomingByte >> 4 == 1){ //Blue tower
             Serial.write(20); //Send gold cost to ATMega1284 (20 -> 0001 0100 -> 0x14)
             towerLEDS[t]->type = 1;
@@ -100,6 +100,7 @@ void matrixDisplaySMTick(){
             Serial.write(60); //Send gold cost to ATMega1284 (60 -> 0011 1100 -> 0x3C)
             towerLEDS[t]->type = 3;
           }
+          towerLEDS[t]->effectRadius = 1;
           towerLEDS[t]->active = 1;
           t++;
           state = notInGameState;
@@ -126,6 +127,44 @@ void matrixDisplaySMTick(){
       else if((movement & 0x08) && cursorY < 31){ cursorY = cursorY + 1; } //move circle right
       else{} //don't move circle
       break;
+  }
+}
+
+void drawAllActiveTowers(){
+  //draw all towers from towerLEDS[]
+  for(int i = 0; i < numTowers; i++){
+    if(towerLEDS[i]->active){
+      if(towerLEDS[i]->type == 1){
+        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 0, 7));
+        //tower visual effect
+        if(towerLEDS[i]->effectRadius < 3){
+          matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 0, 7));
+          delay(30); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
+                     //Multiple turrets also decrease cursor responsiveness.
+                     //NOTE: This is a game feature. The more power you draw(more turrets purchased), the less responsive your cursor becomes.
+        } else if(towerLEDS[i]->effectRadius >= 3){
+          towerLEDS[i]->effectRadius = 1;
+        }
+      } else if(towerLEDS[i]->type == 2){
+        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 7));
+        //tower visual effect 
+        if(towerLEDS[i]->effectRadius < 3){
+          matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 7));
+          delay(30);
+        } else if(towerLEDS[i]->effectRadius >= 3){
+          towerLEDS[i]->effectRadius = 1;
+        }
+      } else if(towerLEDS[i]->type == 3){
+        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 0));
+        //tower visual effect
+        if(towerLEDS[i]->effectRadius < 3){
+          matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 0));
+          delay(30);
+        } else if(towerLEDS[i]->effectRadius >= 3){
+          towerLEDS[i]->effectRadius = 1;
+        }
+      }
+    }
   }
 }
 
@@ -176,43 +215,4 @@ void levels(){
     matrix.drawLine(0, 7, 32, 7, matrix.Color333(7, 0, 0));
   }
 }
-
-void drawAllActiveTowers(){
-  //draw all towers from towerLEDS[]
-  for(int i = 0; i < numTowers; i++){
-    if(towerLEDS[i]->active){
-      if(towerLEDS[i]->type == 1){
-        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 0, 7));
-        //tower visual effect
-        if(towerLEDS[i]->effectRadius < 3){
-          matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 0, 7));
-          delay(20); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
-                     //Multiple turrets also decrease cursor responsiveness.
-                     //NOTE: This is a game feature. The more power you draw(more turrets purchased), the less responsive your cursor becomes.
-        } else if(towerLEDS[i]->effectRadius >= 3){
-          towerLEDS[i]->effectRadius = 1;
-        }
-      } else if(towerLEDS[i]->type == 2){
-        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 7));
-        //tower visual effect 
-        if(towerLEDS[i]->effectRadius < 3){
-          matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 7));
-          delay(20);
-        } else if(towerLEDS[i]->effectRadius >= 3){
-          towerLEDS[i]->effectRadius = 1;
-        }
-      } else if(towerLEDS[i]->type == 3){
-        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 0));
-        //tower visual effect
-        if(towerLEDS[i]->effectRadius < 3){
-          matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 0));
-          delay(20);
-        } else if(towerLEDS[i]->effectRadius >= 3){
-          towerLEDS[i]->effectRadius = 1;
-        }
-      }
-    }
-  }
-}
-
 
