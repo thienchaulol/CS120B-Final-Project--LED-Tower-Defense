@@ -311,7 +311,7 @@ int usartSMTick(int state){
 	return state;
 }
 
-int spawnedEnemies, enemyCount, timeCount;
+unsigned char spawnedEnemies, enemyCount, timeCount, enemiesClear;
 
 //Deals with enemies and current level
 enum enemySM{enemy_init, enemy_wait, enemy_spawn, enemy_spawnWait, enemy_levelComplete};
@@ -329,6 +329,7 @@ int enemySMTick(int state){
 			if(C0){
 				//LCD_DisplayString(1, "C0");
 				inGame = 1;
+				enemiesClear = 0;
 				state = enemy_spawn;
 			} else if(!C0){
 				inGame = 0;
@@ -340,8 +341,10 @@ int enemySMTick(int state){
 		case enemy_spawn:
 			if(spawnedEnemies < enemyCount){
 				state = enemy_spawnWait; //Wait 1.5 seconds to spawn new enemy
-			} else if(spawnedEnemies >= enemyCount){
+			} else if(spawnedEnemies >= enemyCount && enemiesClear){ //When done spawning and enemies are clear
 				state = enemy_levelComplete;
+			} else {
+				state = enemy_spawn;
 			}
 			break;
 		case enemy_spawnWait:
@@ -365,22 +368,18 @@ int enemySMTick(int state){
 		case enemy_spawn:
 			//Send info to USART about enemies.
 			//TODO: Check if player's health reaches 0 and add code accordingly.
-			if(level == 1){ 
-				//Bit 7 used to check inGame status. Bits 5-4 are unused.
-				//Bits 3-2 for enemy type. Bits 1-0 for enemy health.
-				enemyCount = 5;
-				outgoingByte |= 0x95; // 1000 0101
-			} else if(level == 2){
-				enemyCount = 6;
-				outgoingByte |= 0xAA; // 1000 1010
-			} else if(level == 3){
-				enemyCount == 7;
-				outgoingByte |= 0xBF; // 1000 1111
-			}
-			spawnedEnemies++; //Hoping to send "enemyCount" amount of enemies.
+			/*if(USART_HasReceived(0)){ //Receive in game
+				receivedByte = USART_Receive(0);
+				if(receivedByte >> 7 == 0){ //Not in game
+					enemiesClear = 1;
+				}
+			}*/
+			enemyCount = 5; //Five enemies per level.
+			outgoingByte |= 0x81; // 1000 0001. (outgoingByte << 4 != 0)
+			spawnedEnemies++;
 			break;
 		case enemy_spawnWait:
-			//outgoingByte &= 0x80; //Don't send anything.
+			outgoingByte &= 0x80; // 1000 0000. (outgoingByte << 4 == 0)
 			timeCount++;
 			break;
 		case enemy_levelComplete:

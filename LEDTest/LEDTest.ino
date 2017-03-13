@@ -17,8 +17,12 @@ unsigned int cursorX = 14; //X position of cursor
 unsigned int cursorY = 30; //Y position of cursor
 unsigned char movement = 0x00; //New cursor position
 unsigned char tower = 0x00; //Selected turret
-unsigned int t = 0; //Used to index through towerLEDS[]
-unsigned int e = 0; //Used to index through enemyLEDS[]
+unsigned char t = 0; //Used to index through towerLEDS[]
+unsigned char enemyOneSpawned = 0; //NOTE: Not setting a variable to a value and then adjusting it somewhere in the code
+unsigned char enemyTwoSpawned = 0; //      causes the LED matrix to bug out
+unsigned char enemyThreeSpawned = 0;
+unsigned char enemyFourSpawned = 0;
+unsigned char enemyFiveSpawned = 0;
 
 //------------------------Setup()
 void setup() {
@@ -33,32 +37,23 @@ typedef struct towerLED{
 } towerLED;
 static towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7;
 towerLED *towerLEDS[] = { &towerLED1, &towerLED2, &towerLED3, &towerLED4, &towerLED5, &towerLED6, &towerLED7 };
-    //BUG: Storing more than 7 towerLED variables into towerLEDS[] and attempting to iterate through towerLEDS[] causes the LED matrix to bug out.
+    //NOTE: Storing more than 7 towerLED variables into towerLEDS[] and attempting to iterate through towerLEDS[] causes the LED matrix to bug out.
 const unsigned short numTowers = sizeof(towerLEDS)/sizeof(towerLED*);
-
-//------------------------Enemies
-typedef struct enemyLED{
-  //Need an array of xPos and yPos that corresponds to current level.
-  unsigned int eX, eY, type, active; //Pink(Type = 1) Yellow(Type = 2) Red(type = 3)
-                                     //eX is the current X position of the enemy LED used to index xPos
-                                     //eY is the current Y position of the enemy LED used to index yPos
-  //unsigned char xPos1[50] = {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}; //Array of values enemies will use to path. Level 1
-  //unsigned char yPos1[50] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}; //TODO: Write paths for enemies for specific levels.
-  //^must be unsigned char type due to memory constraints
-} enemyLED;
-static enemyLED enemyLED1, enemyLED2, enemyLED3, enemyLED4, enemyLED5, enemyLED6, enemyLED7;  
-enemyLED *enemyLEDS[] = { &enemyLED1, &enemyLED2, &enemyLED3, &enemyLED4, &enemyLED5, &enemyLED6, &enemyLED7 };  
-const unsigned short numEnemies = sizeof(enemyLEDS)/sizeof(enemyLED*);
 
 //------------------------Function Declarations
 void moveCursor(); //Moves cursor
 void levels(); //Draws level
 void drawAllActiveTowers(); //Draws purchased towers
-void drawAllActiveEnemies(); //Draws enemies for current level
 void matrixDisplaySMTick(); //State machine that deals with Cursor and Towers 
+void enemySMTick(); //Deals with drawing enemies
+void drawEnemyOne();
+void drawEnemyTwo();
+void drawEnemyThree();
+void drawEnemyFour();
+void drawEnemyFive();
 
 //------------------------State Machine
-enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release} state;
+enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release, enemy_checkUSART, enemy_writeEnemies} state;
 
 //------------------------Loop()
 void loop() {
@@ -67,12 +62,20 @@ void loop() {
     if(incomingByte & 0x80 == 0){ inGame = 0; } 
     else if(incomingByte & 0x80 == 1){ inGame = 1; }
   }
+  //TODO: Make 2 levels, have the level bit travel via bit 6 of the "inGame byte"
   matrix.fillScreen(0);
   
   matrixDisplaySMTick();
-  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw cursor position
-  drawAllActiveTowers(); //draws all purchased towers
-  levels(); //display current level
+  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draw cursor position
+  drawAllActiveTowers(); //Draws all purchased towers
+
+  if(enemyOneSpawned) { drawEnemyOne(); } // Each enemy function is called 1.5 seconds after the other.
+  /*if(enemyTwoSpawned) { drawEnemyTwo(); }
+  if(enemyThreeSpawned){ drawEnemyThree(); }
+  if(enemyFourSpawned) { drawEnemyFour(); }
+  if(enemyFiveSpawned) { drawEnemyFive(); }*/
+  
+  levels(); //Display current level
   
   matrix.swapBuffers(false); //Update Display
 }
@@ -106,6 +109,7 @@ void matrixDisplaySMTick(){
           state = notInGameState;
         } else if((incomingByte << 4 != 0)){ state = moveCursor_Press; } // Moving cursor
       }
+      else if(inGame){ state = enemy_checkUSART; }
       else { state = notInGameState; }
       break;
     case moveCursor_Press:
@@ -115,6 +119,13 @@ void matrixDisplaySMTick(){
       }
       break;
     case moveCursor_Release: state = notInGameState; break;
+    case enemy_checkUSART:
+      if((incomingByte << 4) != 0){ state = enemy_writeEnemies; }
+      else if((incomingByte << 4) == 0){ state = enemy_checkUSART; }
+      break;
+    case enemy_writeEnemies:
+      state = enemy_checkUSART; 
+      break;
   }
   switch(state){ //Actions
     case matrix_init: break;
@@ -127,17 +138,44 @@ void matrixDisplaySMTick(){
       else if((movement & 0x08) && cursorY < 31){ cursorY = cursorY + 1; } //move circle right
       else{} //don't move circle
       break;
+    case enemy_checkUSART: break;
+    case enemy_writeEnemies:
+      //TODO: Depending on the level, the enemies will "follow" a different path.
+      //      Each enemy function is called 1.5 seconds after the other.
+      enemyOneSpawned = 1;
+      //enemyTwoSpawned = 1;
+      //if(enemyOneSpawned == 1){ enemyTwoSpawned = 1; }
+      //if(enemyTwoSpawned) { enemyThreeSpawned = 1; }
+      //if(enemyThreeSpawned){ enemyFourSpawned = 1; }
+      //if(enemyFourSpawned) { enemyFiveSpawned = 1; }
+      break;
   }
 }
 
-void drawAllActiveTowers(){
-  //draw all towers from towerLEDS[]
+unsigned char ActiveEnemies; //Returns 0 if there are no enemies on map, returns 1 if there are enemies on map
+
+void drawEnemyOne(){
+  
+}
+void drawEnemyTwo(){
+  
+}
+void drawEnemyThree(){
+  
+}
+void drawEnemyFour(){
+  
+}
+void drawEnemyFive(){
+  
+}
+
+void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
   for(int i = 0; i < numTowers; i++){
     if(towerLEDS[i]->active){
       if(towerLEDS[i]->type == 1){
         matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 0, 7));
-        //tower visual effect
-        if(towerLEDS[i]->effectRadius < 3){
+        if(towerLEDS[i]->effectRadius < 3){ //Tower visual effect 
           matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 0, 7));
           delay(30); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
                      //Multiple turrets also decrease cursor responsiveness.
@@ -147,7 +185,6 @@ void drawAllActiveTowers(){
         }
       } else if(towerLEDS[i]->type == 2){
         matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 7));
-        //tower visual effect 
         if(towerLEDS[i]->effectRadius < 3){
           matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 7));
           delay(30);
@@ -156,7 +193,6 @@ void drawAllActiveTowers(){
         }
       } else if(towerLEDS[i]->type == 3){
         matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 0));
-        //tower visual effect
         if(towerLEDS[i]->effectRadius < 3){
           matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 0));
           delay(30);
@@ -165,21 +201,6 @@ void drawAllActiveTowers(){
         }
       }
     }
-  }
-}
-
-void drawAllActiveEnemies(){
-  for(int i = 0; i < numEnemies; i++){
-    if(enemyLEDS[i]->type == 1){ //Level 1 Enemies
-      //Spawn pink enemy from enemyLEDS[]
-      matrix.drawPixel(0, 0, matrix.Color333(5, 0, 5));
-    } else if(enemyLEDS[i]->type == 2){ //Level 2 Enemies
-      //Spawn yellow enemy
-      matrix.drawPixel(0, 0, matrix.Color333(0, 5, 5));
-    } else if(enemyLEDS[i]->type == 3){ //Level 3 Enemies
-      //Spawn red?magenta? enemy
-      matrix.drawPixel(0, 0, matrix.Color333(5, 0, 0));
-    } 
   }
 }
 
