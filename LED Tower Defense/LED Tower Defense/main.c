@@ -366,16 +366,16 @@ int enemySMTick(int state){
 			//Send info to USART about enemies.
 			//TODO: Check if player's health reaches 0 and add code accordingly.
 			if(level == 1){ 
-				//Bit 7 used to check inGame status. Bits 5-4 for level.
+				//Bit 7 used to check inGame status. Bits 5-4 are unused.
 				//Bits 3-2 for enemy type. Bits 1-0 for enemy health.
-				enemyCount = 10;
-				outgoingByte |= 0x95; // 1001 0101
+				enemyCount = 5;
+				outgoingByte |= 0x95; // 1000 0101
 			} else if(level == 2){
-				enemyCount = 12;
-				outgoingByte |= 0xAA; // 1010 1010
+				enemyCount = 6;
+				outgoingByte |= 0xAA; // 1000 1010
 			} else if(level == 3){
-				enemyCount == 15;
-				outgoingByte |= 0xBF; // 1011 1111
+				enemyCount == 7;
+				outgoingByte |= 0xBF; // 1000 1111
 			}
 			spawnedEnemies++; //Hoping to send "enemyCount" amount of enemies.
 			break;

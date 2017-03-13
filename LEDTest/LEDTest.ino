@@ -11,13 +11,14 @@ RGBmatrixPanel matrix(A, B, C, CLK, LAT, OE, true);
 
 //------------------------Variables
 int incomingByte = 0; //USART byte
-unsigned int level = 1; //current level //TODO: make level work dynamically
+unsigned int level = 1; //Current level //TODO: make level work dynamically
 unsigned int inGame = 0; //0 = not in game, 1 = in game
 unsigned int cursorX = 14; //X position of cursor
 unsigned int cursorY = 30; //Y position of cursor
-unsigned char movement = 0x00; //new cursor position
-unsigned char tower = 0x00; //selected turret
-unsigned int t = 0; //position of last active tower. player can have max of 10 towers
+unsigned char movement = 0x00; //New cursor position
+unsigned char tower = 0x00; //Selected turret
+unsigned int t = 0; //Used to index through towerLEDS[]
+unsigned int e = 0; //Used to index through enemyLEDS[]
 
 //------------------------Setup()
 void setup() {
@@ -28,32 +29,36 @@ void setup() {
 
 //------------------------Towers
 typedef struct towerLED{
-  unsigned int xPos, yPos, effectRadius, type, active; //blue: type = 1, cyan: type = 2, green: type = 3
+  unsigned int xPos, yPos, effectRadius, type, active; //Blue: type = 1, Cyan: type = 2, Green: type = 3
 } towerLED;
-static towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7/*, towerLED8, towerLED9, towerLED10*/;
-towerLED *towerLEDS[] = { &towerLED1, &towerLED2, &towerLED3, &towerLED4, &towerLED5, &towerLED6, &towerLED7/*, &towerLED8, &towerLED9, &towerLED10*/ };
+static towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7;
+towerLED *towerLEDS[] = { &towerLED1, &towerLED2, &towerLED3, &towerLED4, &towerLED5, &towerLED6, &towerLED7 };
     //BUG: Storing more than 7 towerLED variables into towerLEDS[] and attempting to iterate through towerLEDS[] causes the LED matrix to bug out.
 const unsigned short numTowers = sizeof(towerLEDS)/sizeof(towerLED*);
 
 //------------------------Enemies
 typedef struct enemyLED{
   //Need an array of xPos and yPos that corresponds to current level.
-  unsigned int type, active; //pink: type = 1, yellow: type = 2, red?magenta?: type = 3
-  int xPos1[], yPos1[]; //Path for enemy to follow for level 1 //TODO: Write paths for enemies for specific levels.
+  unsigned int eX, eY, type, active; //Pink(Type = 1) Yellow(Type = 2) Red(type = 3)
+                                     //eX is the current X position of the enemy LED used to index xPos
+                                     //eY is the current Y position of the enemy LED used to index yPos
+  //unsigned char xPos1[50] = {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}; //Array of values enemies will use to path. Level 1
+  //unsigned char yPos1[50] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}; //TODO: Write paths for enemies for specific levels.
+  //^must be unsigned char type due to memory constraints
 } enemyLED;
-static enemyLED enemyLED1, enemyLED2, enemyLED3, enemyLED4, enemyLED5, enemyLED6, enemyLED7/*, enemyLED8, enemyLED9, enemyLED10, enemyLED11, enemyLED12, enemyLED13, enemyLED14, enemyLED15*/;  
-enemyLED *enemyLEDS[] = { &enemyLED1, &enemyLED2, &enemyLED3, &enemyLED4, &enemyLED5, &enemyLED6, &enemyLED7/*, &enemyLED8, &enemyLED9, &enemyLED10, &enemyLED11, &enemyLED12, &enemyLED13, &enemyLED14, &enemyLED15*/ };  
+static enemyLED enemyLED1, enemyLED2, enemyLED3, enemyLED4, enemyLED5, enemyLED6, enemyLED7;  
+enemyLED *enemyLEDS[] = { &enemyLED1, &enemyLED2, &enemyLED3, &enemyLED4, &enemyLED5, &enemyLED6, &enemyLED7 };  
 const unsigned short numEnemies = sizeof(enemyLEDS)/sizeof(enemyLED*);
 
 //------------------------Function Declarations
-void moveCursor();
-void levels();
-void drawAllActiveTowers();
-void drawAllActiveEnemies();
-void matrixDisplaySMTick();
+void moveCursor(); //Moves cursor
+void levels(); //Draws level
+void drawAllActiveTowers(); //Draws purchased towers
+void drawAllActiveEnemies(); //Draws enemies for current level
+void matrixDisplaySMTick(); //State machine that deals with Cursor and Towers 
 
 //------------------------State Machine
-enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release, inGameState /*more states*/} state;
+enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release} state;
 
 //------------------------Loop()
 void loop() {
@@ -71,8 +76,9 @@ void loop() {
 }
 
 //------------------------Functions
+
 void matrixDisplaySMTick(){
-  switch(state){
+  switch(state){ //Transitions
     case matrix_init: state = notInGameState; break;
     case notInGameState:
       if(!inGame){
@@ -97,30 +103,19 @@ void matrixDisplaySMTick(){
           towerLEDS[t]->active = 1;
           t++;
           state = notInGameState;
-        } else if((incomingByte << 4 != 0)){ // Moving cursor
-          state = moveCursor_Press;
-        }
+        } else if((incomingByte << 4 != 0)){ state = moveCursor_Press; } // Moving cursor
       }
-      else if(inGame){ state = inGameState; }
       else { state = notInGameState; }
       break;
     case moveCursor_Press:
       if(!inGame){
-        if(incomingByte << 4 != 0){
-          movement = incomingByte;
-          state = moveCursor_Press;
-        } else if(incomingByte << 4 == 0){
-          state = moveCursor_Release;
-        }
+        if(incomingByte << 4 != 0){ movement = incomingByte; state = moveCursor_Press; } 
+        else if(incomingByte << 4 == 0){ state = moveCursor_Release; }
       }
       break;
     case moveCursor_Release: state = notInGameState; break;
-    case inGameState: //TODO: Spawn enemies
-      if(inGame){ state = inGameState; } 
-      else if(!inGame){ state = notInGameState; }
-      break;
   }
-  switch(state){
+  switch(state){ //Actions
     case matrix_init: break;
     case notInGameState: break;
     case moveCursor_Press: break;
@@ -131,7 +126,21 @@ void matrixDisplaySMTick(){
       else if((movement & 0x08) && cursorY < 31){ cursorY = cursorY + 1; } //move circle right
       else{} //don't move circle
       break;
-    case inGameState: break; //TODO: Spawn enemies 
+  }
+}
+
+void drawAllActiveEnemies(){
+  for(int i = 0; i < numEnemies; i++){
+    if(enemyLEDS[i]->type == 1){ //Level 1 Enemies
+      //Spawn pink enemy from enemyLEDS[]
+      matrix.drawPixel(0, 0, matrix.Color333(5, 0, 5));
+    } else if(enemyLEDS[i]->type == 2){ //Level 2 Enemies
+      //Spawn yellow enemy
+      matrix.drawPixel(0, 0, matrix.Color333(0, 5, 5));
+    } else if(enemyLEDS[i]->type == 3){ //Level 3 Enemies
+      //Spawn red?magenta? enemy
+      matrix.drawPixel(0, 0, matrix.Color333(5, 0, 0));
+    } 
   }
 }
 
@@ -206,16 +215,4 @@ void drawAllActiveTowers(){
   }
 }
 
-void drawAllActiveEnemies(){
-  if((incomingByte << 4 == 5) && inGame){ //Level 1 Enemies
-    //Spawn pink enemy from enemyLEDS[]
-    matrix.drawPixel(0, 0, matrix.Color333(5, 0, 5));
-  } else if((incomingByte << 4 == 10) && inGame){ //Level 2 Enemies
-    //Spawn yellow enemy
-    matrix.drawPixel(0, 0, matrix.Color333(0, 5, 5));
-  } else if((incomingByte << 4 == 15) && inGame){ //Level 3 Enemies
-    //Spawn red?magenta? enemy
-    matrix.drawPixel(0, 0, matrix.Color333(5, 0, 0));
-  }
-}
 
