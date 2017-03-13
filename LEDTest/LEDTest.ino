@@ -30,7 +30,7 @@ void setup() {
 typedef struct towerLED{
   unsigned int xPos, yPos, effectRadius, type, active; //blue: type = 1, cyan: type = 2, green: type = 3
 } towerLED;
-towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7/*, towerLED8, towerLED9, towerLED10*/;
+static towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7/*, towerLED8, towerLED9, towerLED10*/;
 towerLED *towerLEDS[] = { &towerLED1, &towerLED2, &towerLED3, &towerLED4, &towerLED5, &towerLED6, &towerLED7/*, &towerLED8, &towerLED9, &towerLED10*/ };
     //BUG: Storing more than 7 towerLED variables into towerLEDS[] and attempting to iterate through towerLEDS[] causes the LED matrix to bug out.
 const unsigned short numTowers = sizeof(towerLEDS)/sizeof(towerLED*);
@@ -41,8 +41,8 @@ typedef struct enemyLED{
   unsigned int type, active; //pink: type = 1, yellow: type = 2, red?magenta?: type = 3
   int xPos1[], yPos1[]; //Path for enemy to follow for level 1 //TODO: Write paths for enemies for specific levels.
 } enemyLED;
-static enemyLED enemyLED1, enemyLED2, enemyLED3, enemyLED4, enemyLED5, enemyLED6, enemyLED7, enemyLED8, enemyLED9, enemyLED10, enemyLED11, enemyLED12, enemyLED13, enemyLED14, enemyLED15;  
-enemyLED *enemyLEDS[] = { &enemyLED1, &enemyLED2, &enemyLED3, &enemyLED4, &enemyLED5, &enemyLED6, &enemyLED7, &enemyLED8, &enemyLED9, &enemyLED10, &enemyLED11, &enemyLED12, &enemyLED13, &enemyLED14, &enemyLED15 };  
+static enemyLED enemyLED1, enemyLED2, enemyLED3, enemyLED4, enemyLED5, enemyLED6, enemyLED7/*, enemyLED8, enemyLED9, enemyLED10, enemyLED11, enemyLED12, enemyLED13, enemyLED14, enemyLED15*/;  
+enemyLED *enemyLEDS[] = { &enemyLED1, &enemyLED2, &enemyLED3, &enemyLED4, &enemyLED5, &enemyLED6, &enemyLED7/*, &enemyLED8, &enemyLED9, &enemyLED10, &enemyLED11, &enemyLED12, &enemyLED13, &enemyLED14, &enemyLED15*/ };  
 const unsigned short numEnemies = sizeof(enemyLEDS)/sizeof(enemyLED*);
 
 //------------------------Function Declarations
@@ -65,38 +65,9 @@ void loop() {
   matrix.fillScreen(0);
   matrixDisplaySMTick();
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw cursor position
-  drawAllActiveTowers();
-  /*
-  if(towerLEDS[t]->active != 0){ //Temporary conditional. To be replaced by drawAllActiveTowers()
-    if(towerLEDS[t]->type == 1){
-      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 0, 7));
-      if(towerLEDS[t]->effectRadius < 3){
-        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 0, 7));
-        delay(50); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
-      } else if(towerLEDS[t]->effectRadius >= 3){
-        towerLEDS[t]->effectRadius = 1;
-      }
-    } else if(towerLEDS[t]->type == 2){
-      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 7));
-      if(towerLEDS[t]->effectRadius < 3){
-        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 7, 7));
-        delay(50);
-      } else if(towerLEDS[t]->effectRadius >= 3){
-        towerLEDS[t]->effectRadius = 1;
-      }
-    } else if(towerLEDS[t]->type == 3){
-      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 0)); 
-      if(towerLEDS[t]->effectRadius < 3){
-        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 7, 0));
-        delay(50);
-      } else if(towerLEDS[t]->effectRadius >= 3){
-        towerLEDS[t]->effectRadius = 1;
-      }
-    }
-  }*/
+  drawAllActiveTowers(); //draws all purchased towers
   levels(); //display current level
-  //Update Display
-  matrix.swapBuffers(false);
+  matrix.swapBuffers(false); //Update Display
 }
 
 //------------------------Functions
@@ -206,7 +177,9 @@ void drawAllActiveTowers(){
         //tower visual effect
         if(towerLEDS[i]->effectRadius < 3){
           matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 0, 7));
-          delay(50); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
+          delay(20); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
+                     //Multiple turrets also decrease cursor responsiveness.
+                     //NOTE: This is a game feature. The more power you draw(more turrets purchased), the less responsive your cursor becomes.
         } else if(towerLEDS[i]->effectRadius >= 3){
           towerLEDS[i]->effectRadius = 1;
         }
@@ -215,7 +188,7 @@ void drawAllActiveTowers(){
         //tower visual effect 
         if(towerLEDS[i]->effectRadius < 3){
           matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 7));
-          delay(50);
+          delay(20);
         } else if(towerLEDS[i]->effectRadius >= 3){
           towerLEDS[i]->effectRadius = 1;
         }
@@ -224,7 +197,7 @@ void drawAllActiveTowers(){
         //tower visual effect
         if(towerLEDS[i]->effectRadius < 3){
           matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 0));
-          delay(50);
+          delay(20);
         } else if(towerLEDS[i]->effectRadius >= 3){
           towerLEDS[i]->effectRadius = 1;
         }
