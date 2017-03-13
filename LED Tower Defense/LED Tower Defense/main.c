@@ -284,7 +284,7 @@ int LCDTick(int state){
 					LCD_DisplayString(1, updatePlayerInfo(gold - 60, level, health));
 				}
 			}
-			LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
+			LCD_DisplayString(1, updatePlayerInfo(gold, level, health)); //TODO: Fix flickering on LCD display caused by this statement.
 			break;
 		case LCD_win: break;
 		case LCD_loss: break;
@@ -322,8 +322,7 @@ int enemySMTick(int state){
 			state = enemy_wait;
 			break;
 		case enemy_wait:
-			//TODO: Win message
-			/*if(level == 3){
+			/*if(level == 3){ //TODO: Win message
 				//Display Win Message
 				//End Game
 			}*/
@@ -482,7 +481,7 @@ int main(void)
 	TimerSet(GCD);
 	TimerOn();
 	LCD_init();
-	//LCD_DisplayString(1, playerInfo);
+	LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
 	InitADC();
 	initUSART(0);
 	USART_Flush(0);

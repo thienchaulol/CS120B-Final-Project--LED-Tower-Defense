@@ -30,8 +30,9 @@ void setup() {
 typedef struct towerLED{
   unsigned int xPos, yPos, effectRadius, type, active; //blue: type = 1, cyan: type = 2, green: type = 3
 } towerLED;
-static towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7, towerLED8, towerLED9, towerLED10;
-towerLED *towerLEDS[] = { &towerLED1, &towerLED2, &towerLED3, &towerLED4, &towerLED5, &towerLED6, &towerLED7, &towerLED8, &towerLED9, &towerLED10 };
+towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7/*, towerLED8, towerLED9, towerLED10*/;
+towerLED *towerLEDS[] = { &towerLED1, &towerLED2, &towerLED3, &towerLED4, &towerLED5, &towerLED6, &towerLED7/*, &towerLED8, &towerLED9, &towerLED10*/ };
+    //BUG: Storing more than 7 towerLED variables into towerLEDS[] and attempting to iterate through towerLEDS[] causes the LED matrix to bug out.
 const unsigned short numTowers = sizeof(towerLEDS)/sizeof(towerLED*);
 
 //------------------------Enemies
@@ -47,12 +48,58 @@ const unsigned short numEnemies = sizeof(enemyLEDS)/sizeof(enemyLED*);
 //------------------------Function Declarations
 void moveCursor();
 void levels();
-void drawAllActiveTurrets();
+void drawAllActiveTowers();
 void drawAllActiveEnemies();
+void matrixDisplaySMTick();
 
 //------------------------State Machine
 enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release, inGameState /*more states*/} state;
 
+//------------------------Loop()
+void loop() {
+  if(Serial.available() > 0){
+    incomingByte = Serial.read();
+    if(incomingByte & 0x80 == 0){ inGame = 0; } 
+    else if(incomingByte & 0x80 == 1){ inGame = 1; }
+  }
+  matrix.fillScreen(0);
+  matrixDisplaySMTick();
+  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw cursor position
+  drawAllActiveTowers();
+  /*
+  if(towerLEDS[t]->active != 0){ //Temporary conditional. To be replaced by drawAllActiveTowers()
+    if(towerLEDS[t]->type == 1){
+      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 0, 7));
+      if(towerLEDS[t]->effectRadius < 3){
+        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 0, 7));
+        delay(50); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
+      } else if(towerLEDS[t]->effectRadius >= 3){
+        towerLEDS[t]->effectRadius = 1;
+      }
+    } else if(towerLEDS[t]->type == 2){
+      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 7));
+      if(towerLEDS[t]->effectRadius < 3){
+        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 7, 7));
+        delay(50);
+      } else if(towerLEDS[t]->effectRadius >= 3){
+        towerLEDS[t]->effectRadius = 1;
+      }
+    } else if(towerLEDS[t]->type == 3){
+      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 0)); 
+      if(towerLEDS[t]->effectRadius < 3){
+        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 7, 0));
+        delay(50);
+      } else if(towerLEDS[t]->effectRadius >= 3){
+        towerLEDS[t]->effectRadius = 1;
+      }
+    }
+  }*/
+  levels(); //display current level
+  //Update Display
+  matrix.swapBuffers(false);
+}
+
+//------------------------Functions
 void matrixDisplaySMTick(){
   switch(state){
     case matrix_init: state = notInGameState; break;
@@ -61,10 +108,14 @@ void matrixDisplaySMTick(){
         if((incomingByte >> 4 != 0)){ //Placing tower
           towerLEDS[t]->xPos = cursorX;
           towerLEDS[t]->yPos = cursorY;
+          //TODO: Check if current X,Y position is taken by any of the other towers
+          //      so that the player cannot place multiple towers in one spot.
+          //      Make function: checkCurrentTowerLED(), iterates through towerLEDS[] and returns 0 if
+          //      there is no tower at current x and y.
           towerLEDS[t]->effectRadius = 1;
           if(incomingByte >> 4 == 1){ //Blue tower
             Serial.write(20); //Send gold cost to ATMega1284 (20 -> 0001 0100 -> 0x14)
-            towerLEDS[t]->type = 1;  
+            towerLEDS[t]->type = 1;
           } else if(incomingByte >> 4 == 2){ //Cyan tower           
             Serial.write(40); //Send gold cost to ATMega1284 (40 -> 0010 1000 -> 0x28)
             towerLEDS[t]->type = 2;
@@ -73,8 +124,7 @@ void matrixDisplaySMTick(){
             towerLEDS[t]->type = 3;
           }
           towerLEDS[t]->active = 1;
-          //TODO: Check if current X,Y position is taken by any of the other towers
-          //      so that the player cannot place multiple towers in one spot
+          t++;
           state = notInGameState;
         } else if((incomingByte << 4 != 0)){ // Moving cursor
           state = moveCursor_Press;
@@ -114,50 +164,6 @@ void matrixDisplaySMTick(){
   }
 }
 
-//------------------------Loop()
-void loop() {
-  if(Serial.available() > 0){
-    incomingByte = Serial.read();
-    if(incomingByte & 0x80 == 0){ inGame = 0; } 
-    else if(incomingByte & 0x80 == 1){ inGame = 1; }
-  }
-  matrix.fillScreen(0);
-  matrixDisplaySMTick();
-  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); // draw cursor position
-  
-  if(towerLEDS[t]->active != 0){ //Temporary conditional. To be replaced by drawAllActiveTowers()
-    if(towerLEDS[t]->type == 1){
-      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 0, 7));
-      if(towerLEDS[t]->effectRadius < 3){
-        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 0, 7));
-        delay(50); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
-      } else if(towerLEDS[t]->effectRadius >= 3){
-        towerLEDS[t]->effectRadius = 1;
-      }
-    } else if(towerLEDS[t]->type == 2){
-      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 7));
-      if(towerLEDS[t]->effectRadius < 3){
-        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 7, 7));
-        delay(50);
-      } else if(towerLEDS[t]->effectRadius >= 3){
-        towerLEDS[t]->effectRadius = 1;
-      }
-    } else if(towerLEDS[t]->type == 3){
-      matrix.drawPixel(towerLEDS[t]->yPos, towerLEDS[t]->xPos, matrix.Color333(0, 7, 0)); 
-      if(towerLEDS[t]->effectRadius < 3){
-        matrix.drawCircle(towerLEDS[t]->yPos, towerLEDS[t]->xPos, towerLEDS[t]->effectRadius++, matrix.Color333(0, 7, 0));
-        delay(50);
-      } else if(towerLEDS[t]->effectRadius >= 3){
-        towerLEDS[t]->effectRadius = 1;
-      }
-    }
-  }
-  levels(); //display current level
-  //Update Display
-  matrix.swapBuffers(false);
-}
-
-//------------------------Functions
 void levels(){
   if(level == 1){
     matrix.drawLine(0, 8, 9, 8, matrix.Color333(7, 0, 0));
