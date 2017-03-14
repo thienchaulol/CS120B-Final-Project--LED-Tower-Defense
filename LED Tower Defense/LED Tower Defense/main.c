@@ -228,11 +228,19 @@ int LCDTick(int state){
 		case LCD_info:
 			if(USART_HasReceived(0)){ //update info
 				receivedByte = USART_Receive(0); //check USART0
-				if(receivedByte << 2 == 20){ LCD_DisplayString(1, updatePlayerInfo(gold - 20, level, health)); } 
-				else if(receivedByte << 2 == 40){ LCD_DisplayString(1, updatePlayerInfo(gold - 40, level, health)); } 
-				else if(receivedByte << 2 == 60){ LCD_DisplayString(1, updatePlayerInfo(gold - 60, level, health));	}
+				if(receivedByte << 2 == 20){ 
+					gold -= 20;
+					updatePlayerInfo(gold, level, health);
+				} else if(receivedByte << 2 == 40){ 
+					gold -= 40;
+					updatePlayerInfo(gold, level, health);
+				} else if(receivedByte << 2 == 60){ 
+					gold -= 60;
+					updatePlayerInfo(gold, level, health);
+				} else {
+					LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
+				}
 			}
-			LCD_DisplayString(1, updatePlayerInfo(gold, level, health)); //TODO: Fix flickering on LCD display caused by this statement.
 			break;
 		case LCD_win: break;
 		case LCD_loss: break;
@@ -276,8 +284,8 @@ int enemySMTick(int state){
 			else if(spawnedEnemies >= enemyCount){ state = enemy_levelComplete; }
 			break;
 		case enemy_spawnWait:
-			if(timeCount < 15){ state = enemy_spawnWait; }  //TODO: Wait 1.5 seconds per enemy
-			else if(timeCount >= 15){ timeCount = 0; state = enemy_spawn; }
+			if(timeCount >= 15){ timeCount = 0; state = enemy_spawn; }
+			else if(timeCount < 15){ state = enemy_spawnWait; }  //TODO: Wait 1.5 seconds per enemy
 			break;
 		case enemy_levelComplete: state = enemy_init; break;
 	}
@@ -298,9 +306,22 @@ int enemySMTick(int state){
 			break;
 		case enemy_levelComplete:
 			outgoingByte &= 0x7F; // "inGame bit" to 0
-			if(level == 1){ updatePlayerInfo(gold += 5*enemyCount, ++level, health); }
-			else if(level == 2){ updatePlayerInfo(gold += 10*enemyCount, ++level, health); }
-			else if(level == 3){ updatePlayerInfo(gold += 15*enemyCount, ++level, health); }
+			if(level == 1){ 
+				gold += 25;
+				level++;
+				updatePlayerInfo(gold, level, health); 
+			}
+			else if(level == 2){ 
+				gold += 50;
+				level++;
+				updatePlayerInfo(gold + 50, level + 1, health); 
+			}
+			else if(level == 3){ 
+				gold += 75;
+				level++;
+				updatePlayerInfo(gold + 75, level + 1, health);
+			}
+			LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
 			break;
 	}
 	return state;

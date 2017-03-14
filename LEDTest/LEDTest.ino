@@ -142,21 +142,27 @@ unsigned char ActiveEnemies; //Returns 0 if there are no enemies on map, returns
 //TODO: Depending on the level, the enemies will "follow" a different path.
 unsigned char enemyOneX = 0; 
 unsigned char enemyOneY = 0;
+
 void drawEnemyOne(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
   //Draw a moving LED
+  matrix.drawPixel(0, 0, matrix.Color333(7,7,7));
 }
 void drawEnemyTwo(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
+  matrix.drawPixel(0, 1, matrix.Color333(7,7,7));
 }
 void drawEnemyThree(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
+  matrix.drawPixel(0, 2, matrix.Color333(7,7,7));
 }
 void drawEnemyFour(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
+  matrix.drawPixel(0, 3, matrix.Color333(7,7,7));
 }
 void drawEnemyFive(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
+  matrix.drawPixel(0, 4, matrix.Color333(7,7,7));
 }
 
 void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
