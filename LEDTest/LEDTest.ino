@@ -68,7 +68,9 @@ void loop() {
   //TODO: Make 2 levels, have the level bit travel via bit 6 of the "inGame byte"
   matrix.fillScreen(0);
   
-  matrixDisplaySMTick();
+  if(!inGame){
+    matrixDisplaySMTick();
+  }
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draw cursor position
   drawAllActiveTowers(); //Draws all purchased towers
   if(enemyLEDS[0]->active) { drawEnemyOne(); }
@@ -110,11 +112,17 @@ void matrixDisplaySMTick(){
       break;
     case moveCursor_Release: state = notInGameState; break;
     case enemy_checkUSART:
-      if(!inGame){ state = notInGameState; } //Forgot to put this in. 
-      else if((incomingByte << 4) != 0 && inGame){ state = enemy_writeEnemies; }
-      else if((incomingByte << 4) == 0 && inGame){ state = enemy_checkUSART; }
+      if(!inGame){ state = notInGameState; }
+      else if((incomingByte << 4) != 0){ state = enemy_writeEnemies; }
+      else if((incomingByte << 4) == 0){ state = enemy_checkUSART; }
       break;
-    case enemy_writeEnemies: state = enemy_checkUSART; break;
+    case enemy_writeEnemies: 
+      if(e < 5){ //Changing an entire element in an array is not allowed in C. Can change the aspects of the element;
+        enemyLEDS[e]->active = 1;
+        e++; //Each enemy "bool" is called 1.5 seconds after the other.
+      }
+      state = enemy_checkUSART; 
+      break;
   }
   switch(state){ //Actions
     case matrix_init: break;
@@ -123,18 +131,12 @@ void matrixDisplaySMTick(){
     case moveCursor_Release:   
       if((movement & 0x01) && cursorX > 0){ cursorX = cursorX - 1; } //move circle up
       else if((movement & 0x02) && cursorX < 15){ cursorX = cursorX + 1; } //move circle down
-      else if((movement & 0x04) && cursorY > 0){cursorY = cursorY - 1; } //move circle left
+      else if((movement & 0x04) && cursorY > 0){ cursorY = cursorY - 1; } //move circle left
       else if((movement & 0x08) && cursorY < 31){ cursorY = cursorY + 1; } //move circle right
       else{} //don't move circle
       break;
     case enemy_checkUSART: break;
-    case enemy_writeEnemies:
-      //Each enemy "bool" is called 1.5 seconds after the other.
-      if(e < 5){ //Changing an entire elemtn in an array is not allowed in C. Can change the aspects of the element;
-        enemyLEDS[e]->active = 1;
-        e++;
-      }
-      break;
+    case enemy_writeEnemies: break;
   }
 }
 
@@ -146,7 +148,7 @@ unsigned char enemyOneY = 0;
 void drawEnemyOne(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
   //Draw a moving LED
-  matrix.drawPixel(0, 0, matrix.Color333(7,7,7));
+  matrix.drawPixel(0, 0, matrix.Color333(7,7,7));  
 }
 void drawEnemyTwo(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level

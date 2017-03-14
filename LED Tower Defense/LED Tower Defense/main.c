@@ -200,11 +200,13 @@ int ADCTick(int state){
 			y2 = y2 - 512;
 			//LCD_DisplayString(1, itoa(x2, a, 10)); //Must disabled ClearScreen() in LCD_DisplayString() in io.c to see coordinates.
 			//LCD_DisplayString(17, itoa(y2, b, 10));
-			if(y2 > 150){ outgoingByte = outgoingByte | 0x08; } //Right
-			else if(y2 < -150){ outgoingByte = outgoingByte | 0x04; } //Left 
-			else if(x2 < -150){ outgoingByte = outgoingByte | 0x01; } //Up
-			else if(x2 > 150){ outgoingByte = outgoingByte | 0x02; } //Down
-			else{ outgoingByte = outgoingByte | 0x00; } //No Input
+			if(!inGame){ //NOTE: Cannot move cursor while in game
+				if(y2 > 150){ outgoingByte = outgoingByte | 0x08; } //Right
+				else if(y2 < -150){ outgoingByte = outgoingByte | 0x04; } //Left 
+				else if(x2 < -150){ outgoingByte = outgoingByte | 0x01; } //Up
+				else if(x2 > 150){ outgoingByte = outgoingByte | 0x02; } //Down
+				else{ outgoingByte = outgoingByte | 0x00; } //No Input
+			}
 			break;
 	}
 	return state;
@@ -260,7 +262,7 @@ int usartSMTick(int state){
 		case usartSM_check0:
 			if(USART_IsSendReady(0)){ //if the USART is ready
 				USART_Send(outgoingByte, 0); //send USART 0
-				outgoingByte &= 0x80; //Reset bits 0-6 after being sent. Keep track of 7th bit to see if inGame or not
+				outgoingByte &= 0x80; //Reset bits 0-6 after being sent. Keep track of 7th bit to see if inGame
 			}
 			break;
 	}
@@ -281,7 +283,12 @@ int enemySMTick(int state){
 			state = enemy_wait; 
 			break;
 		case enemy_wait: //TODO: Win Message
-			if(C0){	state = enemy_C0Press; }
+			if(C0){
+				inGame = 1;
+				outgoingByte |= 0x81; // 1000 0001. (outgoingByte << 4 != 0)
+				outgoingByte &= 0x81;
+				state = enemy_C0Press; 
+			} 
 			else{ state = enemy_wait; }
 			break;
 		case enemy_C0Press:
@@ -293,8 +300,18 @@ int enemySMTick(int state){
 			else if(spawnedEnemies >= enemyCount){ state = enemy_levelComplete; }
 			break;
 		case enemy_spawnWait:
-			if(timeCount >= 15){ timeCount = 0; state = enemy_spawn; }
-			else if(timeCount < 15){ state = enemy_spawnWait; }  //TODO: DOESN"T WAIT 7.5 SECONDS ON THE FIRST C0 PRESS!
+			if(timeCount >= 15){ 
+				outgoingByte |= 0x81; // 1000 0001. Send signal to spawn enemy
+				outgoingByte &= 0x81;
+				timeCount = 0; 
+				state = enemy_spawn; 
+			} 
+			else if(timeCount < 15){
+				outgoingByte |= 0x80; // 1000 0000. No signal
+				outgoingByte &= 0x80;
+				timeCount++;
+				state = enemy_spawnWait; 
+			}
 			break;
 		case enemy_levelComplete: state = enemy_init; break;
 	}
@@ -303,14 +320,10 @@ int enemySMTick(int state){
 			break;
 		case enemy_wait: break;
 		case enemy_C0Press: break;
-		case enemy_spawn: //Send info to USART about enemies. //TODO: Check if player's health reaches 0 and add code accordingly.
-			outgoingByte &= 0x81; // 1000 0001. (outgoingByte << 4 != 0)
+		case enemy_spawn: //Send info to USART about enemies. //TODO: Check if player's health reaches 0
 			spawnedEnemies++; 
 			break;
-		case enemy_spawnWait:
-			outgoingByte &= 0x80; // 1000 0000. (outgoingByte << 4 == 0)
-			timeCount++;
-			break;
+		case enemy_spawnWait: break;
 		case enemy_levelComplete:
 			outgoingByte &= 0x7F; // "inGame bit" to 0
 			if(level == 1){ 
@@ -321,12 +334,12 @@ int enemySMTick(int state){
 			else if(level == 2){
 				gold += 50;
 				level++;
-				updatePlayerInfo(gold + 50, level + 1, health); 
+				updatePlayerInfo(gold, level, health); 
 			}
 			else if(level == 3){ 
 				gold += 75;
 				level++;
-				updatePlayerInfo(gold + 75, level + 1, health);
+				updatePlayerInfo(gold, level, health);
 			}
 			LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
 			inGame = 0;
