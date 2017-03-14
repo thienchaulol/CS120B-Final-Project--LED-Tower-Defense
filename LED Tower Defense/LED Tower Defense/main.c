@@ -110,43 +110,6 @@ int readadc(int ch)
 //------------------------------------End functions
 
 //------------------------------------FSMs
-
-enum startAndPause_States{sNp_init, sNp_wait, sNp_startPress, sNp_startRelease, sNp_pausePress, sNp_pauseRelease};
-
-int sNpTick(int state){
-	switch(state){
-		case sNp_init: state = sNp_wait; break;
-		case sNp_wait:
-			if(C0 && !inGame){ state = sNp_startPress; } 
-			else if(C0 && inGame){ state = sNp_pausePress; } 
-			else { state = sNp_wait; }
-			break;
-		case sNp_startPress:
-			if(C0){ state = sNp_startPress; } 
-			else if(!C0){ state = sNp_startRelease; }
-			break;
-		case sNp_startRelease: state = sNp_wait; break;
-		case sNp_pausePress:
-			if(C0){ state = sNp_pausePress; } 
-			else if(!C0){ state = sNp_pauseRelease; }
-			break;
-		case sNp_pauseRelease: state = sNp_wait; break;
-	}
-	switch(state){
-		case sNp_init: break;
-		case sNp_wait: break;
-		case sNp_startPress: break;
-		case sNp_startRelease:
-			//TODO: Start game
-			break;
-		case sNp_pausePress: break;
-		case sNp_pauseRelease:
-			//TODO: Pause game
-			break;
-	}
-	return state;
-}
-
 //Maybe have only one type of turret due to time constraints.
 enum selectTurret_States{selTur_init, selTur_wait, selTur_bluePress, selTur_blueRelease, selTur_purpPress, selTur_purpRelease, selTur_greenPress, selTur_greenRelease};
 
@@ -237,22 +200,11 @@ int ADCTick(int state){
 			y2 = y2 - 512;
 			//LCD_DisplayString(1, itoa(x2, a, 10)); //Must disabled ClearScreen() in LCD_DisplayString() in io.c to see coordinates.
 			//LCD_DisplayString(17, itoa(y2, b, 10));
-			if(y2 > 150){
-				//LCD_DisplayString(25, "right");
-				outgoingByte = outgoingByte | 0x08;
-			} else if(y2 < -150){
-				//LCD_DisplayString(25, "left");
-				outgoingByte = outgoingByte | 0x04;
-			} else if(x2 < -150){
-				//LCD_DisplayString(25, "up");
-				outgoingByte = outgoingByte | 0x01;
-			} else if(x2 > 150){
-				//LCD_DisplayString(25, "down");6
-				outgoingByte = outgoingByte | 0x02;
-			} else{
-				//LCD_DisplayString(25, "no input");
-				outgoingByte = outgoingByte | 0x00;
-			}
+			if(y2 > 150){ outgoingByte = outgoingByte | 0x08; } //Right
+			else if(y2 < -150){ outgoingByte = outgoingByte | 0x04; } //Left 
+			else if(x2 < -150){ outgoingByte = outgoingByte | 0x01; } //Up
+			else if(x2 > 150){ outgoingByte = outgoingByte | 0x02; } //Down
+			else{ outgoingByte = outgoingByte | 0x00; } //No Input
 			break;
 	}
 	return state;
@@ -276,13 +228,9 @@ int LCDTick(int state){
 		case LCD_info:
 			if(USART_HasReceived(0)){ //update info
 				receivedByte = USART_Receive(0); //check USART0
-				if(receivedByte << 2 == 20){ //TODO: Why left shift by 2?
-					LCD_DisplayString(1, updatePlayerInfo(gold - 20, level, health));
-				} else if(receivedByte << 2 == 40){
-					LCD_DisplayString(1, updatePlayerInfo(gold - 40, level, health));
-				} else if(receivedByte << 2 == 60){
-					LCD_DisplayString(1, updatePlayerInfo(gold - 60, level, health));
-				}
+				if(receivedByte << 2 == 20){ LCD_DisplayString(1, updatePlayerInfo(gold - 20, level, health)); } 
+				else if(receivedByte << 2 == 40){ LCD_DisplayString(1, updatePlayerInfo(gold - 40, level, health)); } 
+				else if(receivedByte << 2 == 60){ LCD_DisplayString(1, updatePlayerInfo(gold - 60, level, health));	}
 			}
 			LCD_DisplayString(1, updatePlayerInfo(gold, level, health)); //TODO: Fix flickering on LCD display caused by this statement.
 			break;
@@ -304,96 +252,55 @@ int usartSMTick(int state){
 		case usartSM_check0:
 			if(USART_IsSendReady(0)){ //if the USART is ready
 				USART_Send(outgoingByte, 0); //send USART 0
-				outgoingByte = outgoingByte & 0x80; //Reset bits 0-6 after being sent. Keep track of 7th bit to see if inGame or not
+				outgoingByte &= 0x80; //Reset bits 0-6 after being sent. Keep track of 7th bit to see if inGame or not
 			}
 			break;
 	}
 	return state;
 }
 
-unsigned char spawnedEnemies, enemyCount, timeCount, enemiesClear;
+unsigned char spawnedEnemies, enemyCount, timeCount/*, enemiesClear*/;
 
 //Deals with enemies and current level
 enum enemySM{enemy_init, enemy_wait, enemy_spawn, enemy_spawnWait, enemy_levelComplete};
 
 int enemySMTick(int state){
 	switch(state){
-		case enemy_init:
-			state = enemy_wait;
-			break;
-		case enemy_wait:
-			/*if(level == 3){ //TODO: Win message
-				//Display Win Message
-				//End Game
-			}*/
-			if(C0){
-				//LCD_DisplayString(1, "C0");
-				inGame = 1;
-				enemiesClear = 0;
-				state = enemy_spawn;
-			} else if(!C0){
-				inGame = 0;
-				state = enemy_wait;
-			} else{
-				state = enemy_wait;
-			}
+		case enemy_init: state = enemy_wait; break;
+		case enemy_wait: //TODO: Win Message
+			if(C0){	inGame = 1;	state = enemy_spawn; } 
+			else if(!C0){ inGame = 0; state = enemy_wait; } 
 			break;
 		case enemy_spawn:
-			if(spawnedEnemies < enemyCount){
-				state = enemy_spawnWait; //Wait 1.5 seconds to spawn new enemy
-			} else if(spawnedEnemies >= enemyCount && enemiesClear){ //When done spawning and enemies are clear
-				state = enemy_levelComplete;
-			} else {
-				state = enemy_spawn;
-			}
+			if(spawnedEnemies < enemyCount){ state = enemy_spawnWait; }
+			else if(spawnedEnemies >= enemyCount){ state = enemy_levelComplete; }
 			break;
 		case enemy_spawnWait:
-			if(timeCount < 15){
-				state = enemy_spawnWait;
-			} else if(timeCount >= 15){
-				timeCount = 0;
-				state = enemy_spawn;
-			}
+			if(timeCount < 15){ state = enemy_spawnWait; }  //TODO: Wait 1.5 seconds per enemy
+			else if(timeCount >= 15){ timeCount = 0; state = enemy_spawn; }
 			break;
-		case enemy_levelComplete:
-			state = enemy_init;
-			break;
+		case enemy_levelComplete: state = enemy_init; break;
 	}
 	switch(state){
-		case enemy_init:
-			enemyCount = spawnedEnemies = enemyCount = 0;
+		case enemy_init: 
+			enemyCount = 5;
+			spawnedEnemies = 0; 
+			timeCount = 0;
 			break;
-		case enemy_wait:
-			break;
-		case enemy_spawn:
-			//Send info to USART about enemies.
-			//TODO: Check if player's health reaches 0 and add code accordingly.
-			/*if(USART_HasReceived(0)){ //Receive in game
-				receivedByte = USART_Receive(0);
-				if(receivedByte >> 7 == 0){ //Not in game
-					enemiesClear = 1;
-				}
-			}*/
-			enemyCount = 5; //Five enemies per level.
-			outgoingByte |= 0x81; // 1000 0001. (outgoingByte << 4 != 0)
-			spawnedEnemies++;
+		case enemy_wait: break;
+		case enemy_spawn: //Send info to USART about enemies. //TODO: Check if player's health reaches 0 and add code accordingly.
+			outgoingByte &= 0x81; // 1000 0001. (outgoingByte << 4 != 0)
+			spawnedEnemies++; 
 			break;
 		case enemy_spawnWait:
 			outgoingByte &= 0x80; // 1000 0000. (outgoingByte << 4 == 0)
 			timeCount++;
 			break;
 		case enemy_levelComplete:
-			outgoingByte &= 0x7F; //Set inGame bit to 0
-			if(level == 1){
-				updatePlayerInfo(gold+= 5*enemyCount, ++level, health);
-				inGame = 0;
-			} else if(level == 2){
-				updatePlayerInfo(gold+= 10*enemyCount, ++level, health);
-				inGame = 0;
-			} else if(level == 3){
-				updatePlayerInfo(gold+= 15*enemyCount, ++level, health);
-				inGame = 0; //Display Win Message
-			}
+			outgoingByte &= 0x7F; // "inGame bit" to 0
+			if(level == 1){ updatePlayerInfo(gold += 5*enemyCount, ++level, health); }
+			else if(level == 2){ updatePlayerInfo(gold += 10*enemyCount, ++level, health); }
+			else if(level == 3){ updatePlayerInfo(gold += 15*enemyCount, ++level, health); }
 			break;
 	}
 	return state;
@@ -406,13 +313,11 @@ int main(void)
 	DDRA = 0x00; PORTA = 0xFF; //Inputs. Using A0 and A1 as inputs for 2-axis joystick
 	DDRB = 0xFF; PORTB = 0x00; //LCD Display, output to PORTB
 	DDRC = 0x00; PORTC = 0xFF; //Inputs. Using C0-C5 as user input
-	//DDRD = 0x03; PORTD = 0xFC; //Using D0 and D1 as outputs(control bus) and D2-D7 as inputs
 	DDRD = 0x30; PORTD = 0xCF; //D4 and D5 are outputs(control bus). D0 - D3 are RXD0, TXD0, RXD1, and TXD1 (UART Functionality)
 	
 	// Period for the tasks
 	unsigned long int LCDTick_calc = 500;
 	unsigned long int ADCTick_calc = 200;
-	unsigned long int sNpTick_calc = 200;
 	unsigned long int selTurTick_calc = 200;
 	unsigned long int usartSMTick_calc = 100;
 	unsigned long int enemySMTick_calc = 100;
@@ -420,7 +325,6 @@ int main(void)
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
 	tmpGCD = findGCD(LCDTick_calc, ADCTick_calc);
-	tmpGCD = findGCD(tmpGCD, sNpTick_calc);
 	tmpGCD = findGCD(tmpGCD, selTurTick_calc);
 	tmpGCD = findGCD(tmpGCD, usartSMTick_calc);
 	tmpGCD = findGCD(tmpGCD, enemySMTick_calc);
@@ -431,14 +335,13 @@ int main(void)
 	//Recalculate GCD periods for scheduler
 	unsigned long int LCDTick_period = LCDTick_calc/GCD;
 	unsigned long int ADCTick_period = ADCTick_calc/GCD;
-	unsigned long int sNpTick_period = sNpTick_calc/GCD;
 	unsigned long int selTurTick_period = selTurTick_calc/GCD;
 	unsigned long int usartSMTick_period = usartSMTick_calc/GCD;
 	unsigned long int enemySMTick_period = enemySMTick_calc/GCD;
 
 	//Declare an array of tasks
-	static task task1, task2, task3, /*task4,*/ task5, task6, task7;
-	task *tasks[] = { &task1, &task2 ,&task3, /*&task4,*/ &task5, &task6, &task7};
+	static task task1, task2, task5, task6, task7;
+	task *tasks[] = { &task1, &task2, &task5, &task6, &task7};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 	
 	// Task 1
@@ -452,12 +355,6 @@ int main(void)
 	task2.period = ADCTick_period;
 	task2.elapsedTime = ADCTick_period;
 	task2.TickFct = &ADCTick;
-	
-	// Task 3
-	task3.state = sNp_init;
-	task3.period = sNpTick_period;
-	task3.elapsedTime = sNpTick_period;
-	task3.TickFct = &sNpTick;
 	
 	// Task 5
 	task5.state = selTur_init;
@@ -487,13 +384,11 @@ int main(void)
 	
 	unsigned short i; // Scheduler for-loop iterator
 	while(1) {
-		A2 = ~PINA & 0x04;
-		C0 = ~PINC & 0x01; //Start/Pause button
+		C0 = ~PINC & 0x01; //Start. TODO: Holding down C0 for 5 seconds resets the game
 		C2 = ~PINC & 0x04; //Select "blue" turret //Best turret
 		C3 = ~PINC & 0x08; //Select "purple" turret //Second best turret
 		C4 = ~PINC & 0x10; //Select "green" turret //Third best turret
 		C5 = ~PINC & 0x20; //Reset
-
 		// Scheduler code
 		for ( i = 0; i < numTasks; i++ ) {
 			// Task is ready to tick

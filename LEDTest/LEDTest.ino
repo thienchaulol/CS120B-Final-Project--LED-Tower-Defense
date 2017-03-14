@@ -18,11 +18,7 @@ unsigned int cursorY = 30; //Y position of cursor
 unsigned char movement = 0x00; //New cursor position
 unsigned char tower = 0x00; //Selected turret
 unsigned char t = 0; //Used to index through towerLEDS[]
-unsigned char enemyOneSpawned = 0; //NOTE: Not setting a variable to a value and then adjusting it somewhere in the code
-unsigned char enemyTwoSpawned = 0; //      causes the LED matrix to bug out
-unsigned char enemyThreeSpawned = 0;
-unsigned char enemyFourSpawned = 0;
-unsigned char enemyFiveSpawned = 0;
+unsigned char e = 0; //Used to index through enemyLEDS[]
 
 //------------------------Setup()
 void setup() {
@@ -31,9 +27,16 @@ void setup() {
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7));
 }
 
+//------------------------Enemies
+typedef struct enemyLED{
+  unsigned char active;
+} enemyLED;
+static enemyLED enemyLED1, enemyLED2, enemyLED3, enemyLED4, enemyLED5;
+enemyLED *enemyLEDS[] = { &enemyLED1, &enemyLED2, &enemyLED3, &enemyLED4, &enemyLED5 };
+
 //------------------------Towers
 typedef struct towerLED{
-  unsigned int xPos, yPos, effectRadius, type, active; //Blue: type = 1, Cyan: type = 2, Green: type = 3
+  unsigned char xPos, yPos, effectRadius, type, active; //Blue: type = 1, Cyan: type = 2, Green: type = 3
 } towerLED;
 static towerLED towerLED1, towerLED2, towerLED3, towerLED4, towerLED5, towerLED6, towerLED7;
 towerLED *towerLEDS[] = { &towerLED1, &towerLED2, &towerLED3, &towerLED4, &towerLED5, &towerLED6, &towerLED7 };
@@ -68,13 +71,11 @@ void loop() {
   matrixDisplaySMTick();
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draw cursor position
   drawAllActiveTowers(); //Draws all purchased towers
-
-  if(enemyOneSpawned) { drawEnemyOne(); }
-  if(enemyTwoSpawned) { drawEnemyTwo(); }
-  if(enemyThreeSpawned){ drawEnemyThree(); }
-  if(enemyFourSpawned) { drawEnemyFour(); }
-  if(enemyFiveSpawned) { drawEnemyFive(); }
-  
+  if(enemyLEDS[0]->active) { drawEnemyOne(); }
+  if(enemyLEDS[1]->active) { drawEnemyTwo(); }
+  if(enemyLEDS[2]->active) { drawEnemyThree(); }
+  if(enemyLEDS[3]->active) { drawEnemyFour(); }
+  if(enemyLEDS[4]->active) { drawEnemyFive(); }
   levels(); //Display current level
   
   matrix.swapBuffers(false); //Update Display
@@ -88,21 +89,10 @@ void matrixDisplaySMTick(){
       if(!inGame){
         if((incomingByte >> 4 != 0)){ //Placing tower
           towerLEDS[t]->xPos = cursorX;
-          towerLEDS[t]->yPos = cursorY;
-          //TODO: Check if current X,Y position is taken by any of the other towers
-          //      so that the player cannot place multiple towers in one spot.
-          //      Make function: checkCurrentTowerLED(), iterates through towerLEDS[] and returns 0 if
-          //      there is no tower at current x and y.
-          if(incomingByte >> 4 == 1){ //Blue tower
-            Serial.write(20); //Send gold cost to ATMega1284 (20 -> 0001 0100 -> 0x14)
-            towerLEDS[t]->type = 1;
-          } else if(incomingByte >> 4 == 2){ //Cyan tower           
-            Serial.write(40); //Send gold cost to ATMega1284 (40 -> 0010 1000 -> 0x28)
-            towerLEDS[t]->type = 2;
-          } else if(incomingByte >> 4 == 3){ //Green tower            
-            Serial.write(60); //Send gold cost to ATMega1284 (60 -> 0011 1100 -> 0x3C)
-            towerLEDS[t]->type = 3;
-          }
+          towerLEDS[t]->yPos = cursorY; //TODO: Check if current X,Y position is taken by any of the other towers
+          if(incomingByte >> 4 == 1){ Serial.write(20); towerLEDS[t]->type = 1; } 
+          else if(incomingByte >> 4 == 2){ Serial.write(40); towerLEDS[t]->type = 2; } 
+          else if(incomingByte >> 4 == 3){ Serial.write(60); towerLEDS[t]->type = 3; }
           towerLEDS[t]->effectRadius = 1;
           towerLEDS[t]->active = 1;
           t++;
@@ -120,12 +110,11 @@ void matrixDisplaySMTick(){
       break;
     case moveCursor_Release: state = notInGameState; break;
     case enemy_checkUSART:
-      if((incomingByte << 4) != 0){ state = enemy_writeEnemies; }
-      else if((incomingByte << 4) == 0){ state = enemy_checkUSART; }
+      if(!inGame){ state = notInGameState; } //Forgot to put this in. 
+      else if((incomingByte << 4) != 0 && inGame){ state = enemy_writeEnemies; }
+      else if((incomingByte << 4) == 0  && inGame){ state = enemy_checkUSART; }
       break;
-    case enemy_writeEnemies:
-      state = enemy_checkUSART; 
-      break;
+    case enemy_writeEnemies: state = enemy_checkUSART; break;
   }
   switch(state){ //Actions
     case matrix_init: break;
@@ -141,19 +130,21 @@ void matrixDisplaySMTick(){
     case enemy_checkUSART: break;
     case enemy_writeEnemies:
       //Each enemy "bool" is called 1.5 seconds after the other.
-      if(enemyOneSpawned == 0){ enemyOneSpawned = 1; }
-      //if(enemyOneSpawned == 1){ enemyTwoSpawned = 1; }
-      //if(enemyTwoSpawned) { enemyThreeSpawned = 1; }
-      //if(enemyThreeSpawned){ enemyFourSpawned = 1; }
-      //if(enemyFourSpawned) { enemyFiveSpawned = 1; }
+      if(e < 5){ //Changing an entire elemtn in an array is not allowed in C. Can change the aspects of the element;
+        enemyLEDS[e]->active = 1;
+        e++;
+      }
       break;
   }
 }
 
 unsigned char ActiveEnemies; //Returns 0 if there are no enemies on map, returns 1 if there are enemies on map
 //TODO: Depending on the level, the enemies will "follow" a different path.
+unsigned char enemyOneX = 0; 
+unsigned char enemyOneY = 0;
 void drawEnemyOne(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
+  //Draw a moving LED
 }
 void drawEnemyTwo(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
@@ -172,9 +163,8 @@ void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
   for(int i = 0; i < numTowers; i++){
     if(towerLEDS[i]->active){
       if(towerLEDS[i]->type == 1){
-        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 0, 7));
         if(towerLEDS[i]->effectRadius < 3){ //Tower visual effect 
-          matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 0, 7));
+          matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(7, 7, 0));
           delay(30); //This delay effecst the cursor. Cursor is less responsive the higher the delay.
                      //Multiple turrets also decrease cursor responsiveness.
                      //NOTE: This is a game feature. The more power you draw(more turrets purchased), the less responsive your cursor becomes.
@@ -182,7 +172,6 @@ void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
           towerLEDS[i]->effectRadius = 1;
         }
       } else if(towerLEDS[i]->type == 2){
-        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 7));
         if(towerLEDS[i]->effectRadius < 3){
           matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 7));
           delay(30);
@@ -190,7 +179,6 @@ void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
           towerLEDS[i]->effectRadius = 1;
         }
       } else if(towerLEDS[i]->type == 3){
-        matrix.drawPixel(towerLEDS[i]->xPos, towerLEDS[i]->yPos, matrix.Color333(0, 7, 0));
         if(towerLEDS[i]->effectRadius < 3){
           matrix.drawCircle(towerLEDS[i]->yPos, towerLEDS[i]->xPos, towerLEDS[i]->effectRadius++, matrix.Color333(0, 7, 0));
           delay(30);
