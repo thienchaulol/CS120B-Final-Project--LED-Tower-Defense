@@ -267,17 +267,26 @@ int usartSMTick(int state){
 	return state;
 }
 
-unsigned char spawnedEnemies, enemyCount, timeCount/*, enemiesClear*/;
+unsigned char spawnedEnemies, enemyCount, timeCount;
 
 //Deals with enemies and current level
-enum enemySM{enemy_init, enemy_wait, enemy_spawn, enemy_spawnWait, enemy_levelComplete};
+enum enemySM{enemy_init, enemy_wait, enemy_C0Press, enemy_spawn, enemy_spawnWait, enemy_levelComplete};
 
 int enemySMTick(int state){
-	switch(state){
-		case enemy_init: state = enemy_wait; break;
+	switch(state){ //Transitions
+		case enemy_init:
+			spawnedEnemies = 0; //Initialize values in "transitions"
+			enemyCount = 5; //"timeCount" won't be set if initialized in "actions"
+			timeCount = 0;
+			state = enemy_wait; 
+			break;
 		case enemy_wait: //TODO: Win Message
-			if(C0){	inGame = 1;	state = enemy_spawn; } 
-			else if(!C0){ inGame = 0; state = enemy_wait; } 
+			if(C0){	state = enemy_C0Press; }
+			else{ state = enemy_wait; }
+			break;
+		case enemy_C0Press:
+			if(C0){ state = enemy_C0Press; }
+			else if(!C0){ inGame = 1; state = enemy_spawn; }
 			break;
 		case enemy_spawn:
 			if(spawnedEnemies < enemyCount){ state = enemy_spawnWait; }
@@ -285,17 +294,15 @@ int enemySMTick(int state){
 			break;
 		case enemy_spawnWait:
 			if(timeCount >= 15){ timeCount = 0; state = enemy_spawn; }
-			else if(timeCount < 15){ state = enemy_spawnWait; }  //TODO: Wait 1.5 seconds per enemy
+			else if(timeCount < 15){ state = enemy_spawnWait; }  //TODO: DOESN"T WAIT 7.5 SECONDS ON THE FIRST C0 PRESS!
 			break;
 		case enemy_levelComplete: state = enemy_init; break;
 	}
-	switch(state){
-		case enemy_init: 
-			enemyCount = 5;
-			spawnedEnemies = 0; 
-			timeCount = 0;
+	switch(state){ //Actions
+		case enemy_init:
 			break;
 		case enemy_wait: break;
+		case enemy_C0Press: break;
 		case enemy_spawn: //Send info to USART about enemies. //TODO: Check if player's health reaches 0 and add code accordingly.
 			outgoingByte &= 0x81; // 1000 0001. (outgoingByte << 4 != 0)
 			spawnedEnemies++; 
@@ -311,7 +318,7 @@ int enemySMTick(int state){
 				level++;
 				updatePlayerInfo(gold, level, health); 
 			}
-			else if(level == 2){ 
+			else if(level == 2){
 				gold += 50;
 				level++;
 				updatePlayerInfo(gold + 50, level + 1, health); 
@@ -322,6 +329,7 @@ int enemySMTick(int state){
 				updatePlayerInfo(gold + 75, level + 1, health);
 			}
 			LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
+			inGame = 0;
 			break;
 	}
 	return state;

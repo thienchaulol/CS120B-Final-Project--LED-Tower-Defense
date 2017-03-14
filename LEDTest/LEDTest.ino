@@ -112,7 +112,7 @@ void matrixDisplaySMTick(){
     case enemy_checkUSART:
       if(!inGame){ state = notInGameState; } //Forgot to put this in. 
       else if((incomingByte << 4) != 0 && inGame){ state = enemy_writeEnemies; }
-      else if((incomingByte << 4) == 0  && inGame){ state = enemy_checkUSART; }
+      else if((incomingByte << 4) == 0 && inGame){ state = enemy_checkUSART; }
       break;
     case enemy_writeEnemies: state = enemy_checkUSART; break;
   }
