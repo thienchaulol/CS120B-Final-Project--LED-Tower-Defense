@@ -142,9 +142,7 @@ int selTurTick(int state){
 	}
 	switch(state){
 		case selTur_init: break;
-		case selTur_wait: 
-			//outgoingByte = outgoingByte & 0xCF;
-			break;
+		case selTur_wait: break;
 		case selTur_bluePress: break;
 		case selTur_blueRelease:
 			//LCD_DisplayString(25, "C2");
