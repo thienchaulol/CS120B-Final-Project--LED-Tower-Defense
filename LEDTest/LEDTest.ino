@@ -93,12 +93,12 @@ void drawEnemies(){
   if(incomingByte == 0x82){ 
     enemyLEDS[1]->xPos = 0; 
     enemyLEDS[1]->yPos = 0;
-    //enemyLEDS[1]->active = 1; 
+    enemyLEDS[1]->active = 1; 
   }
   if(incomingByte == 0x83){
     enemyLEDS[2]->xPos = 0; 
     enemyLEDS[2]->yPos = 0; 
-    //enemyLEDS[2]->active = 1; 
+    enemyLEDS[2]->active = 1; 
   }
   if(incomingByte == 0x84){
     enemyLEDS[3]->xPos = 0; 
@@ -113,8 +113,8 @@ void drawEnemies(){
   if(enemyLEDS[0]->active == 1) { drawEnemyOne(); } //Draw enemy LED
   if(enemyLEDS[1]->active == 1) { drawEnemyTwo(); }
   if(enemyLEDS[2]->active == 1) { drawEnemyThree(); }
-  if(enemyLEDS[3]->active == 1) { drawEnemyFour(); }
-  if(enemyLEDS[4]->active == 1) { drawEnemyFive(); }
+  if(enemyLEDS[3]->active == 1) { /*drawEnemyFour();*/ }
+  if(enemyLEDS[4]->active == 1) { /*drawEnemyFive();*/ }
 }
 
 void checkCursor(){
@@ -212,17 +212,101 @@ void drawEnemyOne(){ //Moves enemy one
     matrix.drawPixel(enemyLEDS[0]->yPos, enemyLEDS[0]->xPos, matrix.Color333(7, 7, 7));
   }
 }
-void drawEnemyTwo(){
-  matrix.fillCircle(12, 2, 1, matrix.Color333(0, 7, 0));
+void drawEnemyTwo(){ //Moves enemy two
+  if(level == 1){
+    if(incomingByte == 0xFF){
+      if(enemyLEDS[1]->yPos == 31){
+        enemyLEDS[1]->active = 0;
+        //Subtract health
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
+      } 
+      if(enemyLEDS[1]->yPos < 10){
+        enemyLEDS[1]->xPos = 7;
+        enemyLEDS[1]->yPos = (enemyLEDS[1]->yPos) + 1; 
+      } else if(enemyLEDS[1]->xPos == 6 && enemyLEDS[1]->yPos < 31){
+        enemyLEDS[1]->yPos = (enemyLEDS[1]->yPos) + 1;
+      } else if((enemyLEDS[1]->yPos >= 10 && enemyLEDS[1]->yPos != 21) && enemyLEDS[1]->xPos < 14){
+        enemyLEDS[1]->xPos = (enemyLEDS[1]->xPos) + 1;
+      } else if(enemyLEDS[1]->xPos >= 14 && enemyLEDS[1]->yPos < 21){
+        enemyLEDS[1]->yPos = (enemyLEDS[1]->yPos) + 1;
+      } else if(enemyLEDS[1]->yPos == 21 && enemyLEDS[1]->xPos > 6){
+        enemyLEDS[1]->xPos = (enemyLEDS[1]->xPos) - 1;
+      }
+    }
+    matrix.drawPixel(enemyLEDS[1]->yPos, enemyLEDS[1]->xPos, matrix.Color333(4, 4, 4));
+  }
 }
-void drawEnemyThree(){
-  matrix.fillCircle(16, 2, 1, matrix.Color333(0, 0, 7));
+void drawEnemyThree(){ //Moves enemy three
+  if(level == 1){
+    if(incomingByte == 0xFF){
+      if(enemyLEDS[2]->yPos == 31){
+        enemyLEDS[2]->active = 0;
+        //Subtract health
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
+      } 
+      if(enemyLEDS[2]->yPos < 10){
+        enemyLEDS[2]->xPos = 7;
+        enemyLEDS[2]->yPos = (enemyLEDS[2]->yPos) + 1; 
+      } else if(enemyLEDS[2]->xPos == 6 && enemyLEDS[2]->yPos < 31){
+        enemyLEDS[2]->yPos = (enemyLEDS[2]->yPos) + 1;
+      } else if((enemyLEDS[2]->yPos >= 10 && enemyLEDS[2]->yPos != 21) && enemyLEDS[2]->xPos < 14){
+        enemyLEDS[2]->xPos = (enemyLEDS[2]->xPos) + 1;
+      } else if(enemyLEDS[2]->xPos >= 14 && enemyLEDS[2]->yPos < 21){
+        enemyLEDS[2]->yPos = (enemyLEDS[2]->yPos) + 1;
+      } else if(enemyLEDS[2]->yPos == 21 && enemyLEDS[2]->xPos > 6){
+        enemyLEDS[2]->xPos = (enemyLEDS[2]->xPos) - 1;
+      }
+    }
+    matrix.drawPixel(enemyLEDS[2]->yPos, enemyLEDS[2]->xPos, matrix.Color333(7, 7, 7));
+  }
 }
-void drawEnemyFour(){
-  matrix.fillCircle(20, 2, 1, matrix.Color333(7, 0, 0));
+void drawEnemyFour(){ //Moves enemy four
+  if(level == 1){
+    if(incomingByte == 0xFF){
+      if(enemyLEDS[3]->yPos == 31){
+        enemyLEDS[3]->active = 0;
+        //Subtract health
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
+      } 
+      if(enemyLEDS[3]->yPos < 10){
+        enemyLEDS[3]->xPos = 7;
+        enemyLEDS[3]->yPos = (enemyLEDS[3]->yPos) + 1; 
+      } else if(enemyLEDS[3]->xPos == 6 && enemyLEDS[3]->yPos < 31){
+        enemyLEDS[3]->yPos = (enemyLEDS[3]->yPos) + 1;
+      } else if((enemyLEDS[3]->yPos >= 10 && enemyLEDS[3]->yPos != 21) && enemyLEDS[3]->xPos < 14){
+        enemyLEDS[3]->xPos = (enemyLEDS[3]->xPos) + 1;
+      } else if(enemyLEDS[3]->xPos >= 14 && enemyLEDS[3]->yPos < 21){
+        enemyLEDS[3]->yPos = (enemyLEDS[3]->yPos) + 1;
+      } else if(enemyLEDS[3]->yPos == 21 && enemyLEDS[3]->xPos > 6){
+        enemyLEDS[3]->xPos = (enemyLEDS[3]->xPos) - 1;
+      }
+    }
+    matrix.drawPixel(enemyLEDS[3]->yPos, enemyLEDS[3]->xPos, matrix.Color333(7, 7, 7));
+  }
 }
-void drawEnemyFive(){
-  matrix.fillCircle(24, 2, 1, matrix.Color333(0, 7, 0));
+void drawEnemyFive(){ //Moves enemy five
+  if(level == 1){
+    if(incomingByte == 0xFF){
+      if(enemyLEDS[4]->yPos == 31){
+        enemyLEDS[4]->active = 0;
+        //Subtract health
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
+      } 
+      if(enemyLEDS[4]->yPos < 10){
+        enemyLEDS[4]->xPos = 7;
+        enemyLEDS[4]->yPos = (enemyLEDS[4]->yPos) + 1; 
+      } else if(enemyLEDS[4]->xPos == 6 && enemyLEDS[4]->yPos < 31){
+        enemyLEDS[4]->yPos = (enemyLEDS[4]->yPos) + 1;
+      } else if((enemyLEDS[4]->yPos >= 10 && enemyLEDS[4]->yPos != 21) && enemyLEDS[4]->xPos < 14){
+        enemyLEDS[4]->xPos = (enemyLEDS[4]->xPos) + 1;
+      } else if(enemyLEDS[4]->xPos >= 14 && enemyLEDS[4]->yPos < 21){
+        enemyLEDS[4]->yPos = (enemyLEDS[4]->yPos) + 1;
+      } else if(enemyLEDS[0]->yPos == 21 && enemyLEDS[0]->xPos > 6){
+        enemyLEDS[4]->xPos = (enemyLEDS[4]->xPos) - 1;
+      }
+    }
+    matrix.drawPixel(enemyLEDS[4]->yPos, enemyLEDS[4]->xPos, matrix.Color333(7, 7, 7));
+  }
 }
 
 void levels(){
