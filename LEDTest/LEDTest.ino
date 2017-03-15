@@ -56,25 +56,24 @@ void drawEnemyFive();
 
 //------------------------State Machine
 enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release} state;
-enum enemyDisplaySM{enemy_wait, enemy_checkUSART} enemyState;
 
 //------------------------Loop()
 void loop() {
   if(Serial.available() > 0){
     incomingByte = Serial.read();
-    if(incomingByte & 0x80 == 0){ inGame = 0; } 
-    else if(incomingByte & 0x80 == 1){ inGame = 1; } //NOTE: incomingByte & 0x80 != 1. But it works.
   }
   matrix.fillScreen(0);
-  enemyDisplaySMTick();
+  if(incomingByte == 0x81){ enemyLEDS[0]->active = 1; }
+  else if(incomingByte == 0x82) { enemyLEDS[1]->active = 1; }
+  else if(incomingByte == 0x83) { enemyLEDS[2]->active = 1; }
+  else if(incomingByte == 0x84) { enemyLEDS[3]->active = 1; }
+  else if(incomingByte == 0x85) {enemyLEDS[4]->active = 1; }
   if(enemyLEDS[0]->active) { drawEnemyOne(); } //Draw enemies
   if(enemyLEDS[1]->active) { drawEnemyTwo(); }
   if(enemyLEDS[2]->active) { drawEnemyThree(); }
   if(enemyLEDS[3]->active) { drawEnemyFour(); }
   if(enemyLEDS[4]->active) { drawEnemyFive(); }
-  if(!inGame){
-    matrixDisplaySMTick(); //Adjusts values for cursor, towers 
-  }
+  matrixDisplaySMTick(); //Adjusts values for cursor, towers 
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draws cursor's position
   drawAllActiveTowers(); //Draws all purchased towers
   levels(); //Display current level
@@ -125,29 +124,6 @@ void matrixDisplaySMTick(){
       else if((movement & 0x04) && cursorY > 0){ cursorY = cursorY - 1; } //move circle left
       else if((movement & 0x08) && cursorY < 31){ cursorY = cursorY + 1; } //move circle right
       else{} //don't move circle
-      break;
-  }
-}
-
-void enemyDisplaySMTick(){
-  switch(enemyState){
-    case enemy_wait:
-      enemyState = enemy_checkUSART;
-      break;
-    case enemy_checkUSART:
-      enemyState = enemy_checkUSART;
-      break;
-  }
-  switch(enemyState){
-    case enemy_wait:
-      break;
-    case enemy_checkUSART:
-      if(incomingByte == 0x81){ enemyLEDS[0]->active = 1; }
-      else if(incomingByte == 0x82){ enemyLEDS[1]->active = 1; }
-      else if(incomingByte == 0x83) { enemyLEDS[2]->active = 1; }
-      else if(incomingByte == 0x84) { enemyLEDS[3]->active = 1; }
-      else if(incomingByte == 0x85) {enemyLEDS[4]->active = 1; }
-      else if(incomingByte == 0x80) { inGame = 0; }
       break;
   }
 }
