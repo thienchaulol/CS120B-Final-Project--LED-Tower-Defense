@@ -320,18 +320,6 @@ int enemySMTick(int state){
 			}
 			break;
 		case enemy_spawnWait:
-			if(receivedByte == 2){
-				health -= 3;
-				//receivedByte = 0;
-			}
-			if(receivedByte == 3){
-				health -= 5;
-				//receivedByte = 0;
-			}
-			if(receivedByte == 4){
-				health -= 10;
-				//receivedByte = 0;
-			}
 			if(timeCount >= 15){
 				state = enemy_spawn; 
 			} 
@@ -347,6 +335,18 @@ int enemySMTick(int state){
 		case enemy_wait: break;
 		case enemy_C0Press: break;
 		case enemy_spawn: //Send info to USART about enemies. //TODO: Check if player's health reaches 0
+			if(receivedByte == 2){
+				health -= 3;
+				//receivedByte = 0;
+			}
+			if(receivedByte == 3){
+				health -= 5;
+				//receivedByte = 0;
+			}
+			if(receivedByte == 4){
+				health -= 10;
+				//receivedByte = 0;
+			}
 			spawnedEnemies++; 
 			break;
 		case enemy_spawnWait:
@@ -393,6 +393,9 @@ int enemySMTick(int state){
 				updatePlayerInfo(gold, level, health);
 			}
 			LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
+			if(health <= 0){
+				LCD_DisplayString(1, "You lose");
+			}
 			inGame = 0;
 			break;
 	}

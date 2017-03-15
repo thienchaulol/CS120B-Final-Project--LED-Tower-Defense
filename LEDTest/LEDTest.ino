@@ -218,10 +218,10 @@ void drawEnemyOne(){ //Moves enemy one
         enemyLEDS[0]->active = 0;
         checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       }
-      if(enemyLEDS[0]->yPos == 29){
+      if(enemyLEDS[0]->yPos == 28){
         //Subtract health from player
-        //Serial.write(2);
-        //Serial.flush();
+        Serial.write(2);
+        Serial.flush();
       }
       if(enemyLEDS[0]->yPos == 30){ //Enemy reaches end of map
         enemyLEDS[0]->active = 0;
@@ -252,10 +252,10 @@ void drawEnemyTwo(){ //Moves enemy two
         enemyLEDS[1]->active = 0;
         checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       }
-      if(enemyLEDS[1]->yPos == 29){
+      if(enemyLEDS[1]->yPos == 28){
         //Subtract health from player
-        //Serial.write(3);
-        //Serial.flush();
+        Serial.write(3);
+        Serial.flush();
       }
       if(enemyLEDS[1]->yPos == 30){
         enemyLEDS[1]->active = 0;
@@ -286,10 +286,10 @@ void drawEnemyThree(){ //Moves enemy three
         enemyLEDS[2]->active = 0;
         checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       }
-      if(enemyLEDS[2]->yPos == 29){
+      if(enemyLEDS[2]->yPos == 28){
         //Subtract health from player
-        //Serial.write(4);
-        //Serial.flush();
+        Serial.write(4);
+        Serial.flush();
       }
       if(enemyLEDS[2]->yPos == 30){
         enemyLEDS[2]->active = 0;
