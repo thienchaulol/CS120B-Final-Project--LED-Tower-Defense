@@ -228,6 +228,7 @@ int LCDTick(int state){
 		case LCD_info:
 			if(USART_HasReceived(0)){ //update info
 				receivedByte = USART_Receive(0); //check USART0
+				USART_Flush(0);
 				if(receivedByte << 2 == 20){ 
 					gold -= 20;
 					updatePlayerInfo(gold, level, health);
@@ -281,33 +282,25 @@ int enemySMTick(int state){
 			state = enemy_wait; 
 			break;
 		case enemy_wait: //TODO: Win Message
-			if(C0){
-				inGame = 1;
-				outgoingByte |= 0x81; // 1000 0001. (outgoingByte << 4 != 0)
-				outgoingByte &= 0x81;
-				state = enemy_C0Press; 
-			} 
+			if(C0){ state = enemy_C0Press; } 
 			else{ state = enemy_wait; }
 			break;
 		case enemy_C0Press:
 			if(C0){ state = enemy_C0Press; }
-			else if(!C0){ inGame = 1; state = enemy_spawn; }
-			break;
+			else if(!C0){ inGame = 1; state = enemy_spawnWait; }
+			break; 
 		case enemy_spawn:
-			if(spawnedEnemies < enemyCount){ state = enemy_spawnWait; }
-			else if(spawnedEnemies >= enemyCount){ state = enemy_levelComplete; }
+			if(spawnedEnemies < enemyCount){ 
+				state = enemy_spawnWait; 
+			} else if(spawnedEnemies >= enemyCount){ 
+				state = enemy_levelComplete; 
+			}
 			break;
 		case enemy_spawnWait:
-			if(timeCount >= 15){ 
-				outgoingByte |= 0x81; // 1000 0001. Send signal to spawn enemy
-				outgoingByte &= 0x81;
-				timeCount = 0; 
+			if(timeCount >= 15){
 				state = enemy_spawn; 
 			} 
 			else if(timeCount < 15){
-				outgoingByte |= 0x80; // 1000 0000. No signal
-				outgoingByte &= 0x80;
-				timeCount++;
 				state = enemy_spawnWait; 
 			}
 			break;
@@ -321,7 +314,32 @@ int enemySMTick(int state){
 		case enemy_spawn: //Send info to USART about enemies. //TODO: Check if player's health reaches 0
 			spawnedEnemies++; 
 			break;
-		case enemy_spawnWait: break;
+		case enemy_spawnWait:
+			if(timeCount >= 15){
+				if(spawnedEnemies == 0){ 
+					outgoingByte |= 0x81; // 1000 0001
+					outgoingByte &= 0x81; 
+				} else if(spawnedEnemies == 1){
+					outgoingByte |= 0x82;
+					outgoingByte &= 0x82;
+				} else if(spawnedEnemies == 2){
+					outgoingByte |= 0x83;
+					outgoingByte &= 0x83;
+				} else if(spawnedEnemies == 3){
+					outgoingByte |= 0x84;
+					outgoingByte &= 0x84;
+				} else if(spawnedEnemies == 4){
+					outgoingByte |= 0x85;
+					outgoingByte &= 0x85;
+				} else if(spawnedEnemies == 5){
+					outgoingByte |= 0x80;
+					outgoingByte &= 0x80;
+				}
+				timeCount = 0;
+			} else if(timeCount < 15){
+				timeCount++;
+			}
+			break;
 		case enemy_levelComplete:
 			outgoingByte &= 0x7F; // "inGame bit" to 0
 			if(level == 1){ 

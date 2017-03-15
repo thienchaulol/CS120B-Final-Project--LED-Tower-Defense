@@ -18,7 +18,6 @@ unsigned int cursorY = 30; //Y position of cursor
 unsigned char movement = 0x00; //New cursor position
 unsigned char tower = 0x00; //Selected turret
 unsigned char t = 0; //Used to index through towerLEDS[]
-unsigned char e = 0; //Used to index through enemyLEDS[]
 
 //------------------------Setup()
 void setup() {
@@ -57,31 +56,27 @@ void drawEnemyFive();
 
 //------------------------State Machine
 enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release} state;
-enum enemyDisplaySM{enemy_wait, enemy_checkUSART, enemy_writeEnemies} enemyState;
+enum enemyDisplaySM{enemy_wait, enemy_checkUSART} enemyState;
 
 //------------------------Loop()
 void loop() {
   if(Serial.available() > 0){
     incomingByte = Serial.read();
     if(incomingByte & 0x80 == 0){ inGame = 0; } 
-    else if(incomingByte & 0x80 == 1){ inGame = 1; }
+    else if(incomingByte & 0x80 == 1){ inGame = 1; } //NOTE: incomingByte & 0x80 != 1. But it works.
   }
-  //TODO: Make 2 levels, have the level bit travel via bit 6 of the "inGame byte"
   matrix.fillScreen(0);
-  if(!inGame){
-    matrixDisplaySMTick(); //Adjusts values for cursor, towers 
-  }
-  if(inGame){
-    enemyDisplaySMTick(); //Adjusts enemies
-  }
-  
-  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draws cursor's position
-  drawAllActiveTowers(); //Draws all purchased towers
+  enemyDisplaySMTick();
   if(enemyLEDS[0]->active) { drawEnemyOne(); } //Draw enemies
   if(enemyLEDS[1]->active) { drawEnemyTwo(); }
   if(enemyLEDS[2]->active) { drawEnemyThree(); }
   if(enemyLEDS[3]->active) { drawEnemyFour(); }
   if(enemyLEDS[4]->active) { drawEnemyFive(); }
+  if(!inGame){
+    matrixDisplaySMTick(); //Adjusts values for cursor, towers 
+  }
+  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draws cursor's position
+  drawAllActiveTowers(); //Draws all purchased towers
   levels(); //Display current level
   matrix.swapBuffers(false); //Update Display
 }
@@ -94,9 +89,19 @@ void matrixDisplaySMTick(){
       if((incomingByte >> 4 != 0)){ //Placing tower
         towerLEDS[t]->xPos = cursorX;
         towerLEDS[t]->yPos = cursorY; //TODO: Check if current X,Y position is taken by any of the other towers
-        if(incomingByte >> 4 == 1){ Serial.write(20); towerLEDS[t]->type = 1; } 
-        else if(incomingByte >> 4 == 2){ Serial.write(40); towerLEDS[t]->type = 2; } 
-        else if(incomingByte >> 4 == 3){ Serial.write(60); towerLEDS[t]->type = 3; }
+        if(incomingByte >> 4 == 1){ 
+          Serial.write(20); 
+          Serial.flush(); 
+          towerLEDS[t]->type = 1; 
+        } else if(incomingByte >> 4 == 2){ 
+          Serial.write(40); 
+          Serial.flush();
+          towerLEDS[t]->type = 2; 
+        } else if(incomingByte >> 4 == 3){ 
+          Serial.write(60); 
+          Serial.flush();
+          towerLEDS[t]->type = 3; 
+        }
         towerLEDS[t]->effectRadius = 1;
         towerLEDS[t]->active = 1;
         t++;
@@ -125,63 +130,48 @@ void matrixDisplaySMTick(){
 }
 
 void enemyDisplaySMTick(){
-  switch(state){
+  switch(enemyState){
     case enemy_wait:
       enemyState = enemy_checkUSART;
       break;
     case enemy_checkUSART:
-      if(e == 5) {
-        inGame = 0;
-        enemyLEDS[0]->active = 0;
-        enemyLEDS[1]->active = 0;
-        enemyLEDS[2]->active = 0;
-        enemyLEDS[3]->active = 0;
-        enemyLEDS[4]->active = 0;
-        enemyState = enemy_wait;
-      }
-      if((incomingByte << 4) != 0){ enemyState = enemy_writeEnemies; }
-      else if((incomingByte << 4) == 0){ enemyState = enemy_checkUSART; }
-      break;
-    case enemy_writeEnemies:
-      if(e < 5){ //Changing an entire element in an array is not allowed in C. Can change the aspects of the element;
-        enemyLEDS[e]->active = 1;
-        e++; //Each enemy "bool" is called 1.5 seconds after the other.
-      }
-      enemyState = enemy_checkUSART; 
+      enemyState = enemy_checkUSART;
       break;
   }
-  switch(state){
-    case enemy_wait: break;
-    case enemy_checkUSART: break;
-    case enemy_writeEnemies: break;  
+  switch(enemyState){
+    case enemy_wait:
+      break;
+    case enemy_checkUSART:
+      if(incomingByte == 0x81){ enemyLEDS[0]->active = 1; }
+      else if(incomingByte == 0x82){ enemyLEDS[1]->active = 1; }
+      else if(incomingByte == 0x83) { enemyLEDS[2]->active = 1; }
+      else if(incomingByte == 0x84) { enemyLEDS[3]->active = 1; }
+      else if(incomingByte == 0x85) {enemyLEDS[4]->active = 1; }
+      else if(incomingByte == 0x80) { inGame = 0; }
+      break;
   }
 }
-
-unsigned char ActiveEnemies; //Returns 0 if there are no enemies on map, returns 1 if there are enemies on map
-//TODO: Depending on the level, the enemies will "follow" a different path.
-unsigned char enemyOneX = 0; 
-unsigned char enemyOneY = 0;
 
 void drawEnemyOne(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
   //Draw a moving LED
-  matrix.drawPixel(0, 0, matrix.Color333(7,7,7));  
+  matrix.fillCircle(8, 2, 1, matrix.Color333(7, 0, 0)); 
 }
 void drawEnemyTwo(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.drawPixel(0, 1, matrix.Color333(7,7,7));
+  matrix.fillCircle(12, 2, 1, matrix.Color333(0, 7, 0));
 }
 void drawEnemyThree(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.drawPixel(0, 2, matrix.Color333(7,7,7));
+  matrix.fillCircle(16, 2, 1, matrix.Color333(0, 0, 7));
 }
 void drawEnemyFour(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.drawPixel(0, 3, matrix.Color333(7,7,7));
+  matrix.fillCircle(20, 2, 1, matrix.Color333(7, 0, 0));
 }
 void drawEnemyFive(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.drawPixel(0, 4, matrix.Color333(7,7,7));
+  matrix.fillCircle(24, 2, 1, matrix.Color333(0, 7, 0));
 }
 
 void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
