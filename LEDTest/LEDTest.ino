@@ -237,7 +237,9 @@ void drawEnemyOne(){ //Moves enemy one
         enemyLEDS[0]->xPos = (enemyLEDS[0]->xPos) - 1;
       }
     }
-    matrix.drawPixel(enemyLEDS[0]->yPos, enemyLEDS[0]->xPos, matrix.Color333(7, 7, 7));
+    if(enemyLEDS[0]->yPos !=0 && enemyLEDS[0]->xPos != 0){
+      matrix.drawPixel(enemyLEDS[0]->yPos, enemyLEDS[0]->xPos, matrix.Color333(7, 7, 7));
+    }
   }
 }
 
@@ -267,7 +269,9 @@ void drawEnemyTwo(){ //Moves enemy two
         enemyLEDS[1]->xPos = (enemyLEDS[1]->xPos) - 1;
       }
     }
-    matrix.drawPixel(enemyLEDS[1]->yPos, enemyLEDS[1]->xPos, matrix.Color333(7, 7, 7));
+    if(enemyLEDS[1]->yPos !=0 && enemyLEDS[1]->xPos != 0){
+      matrix.drawPixel(enemyLEDS[1]->yPos, enemyLEDS[1]->xPos, matrix.Color333(7, 7, 7));
+    }
   }
 }
 
@@ -297,7 +301,9 @@ void drawEnemyThree(){ //Moves enemy three
         enemyLEDS[2]->xPos = (enemyLEDS[2]->xPos) - 1;
       }
     }
-    matrix.drawPixel(enemyLEDS[2]->yPos, enemyLEDS[2]->xPos, matrix.Color333(7, 7, 7));
+    if(enemyLEDS[2]->yPos !=0 && enemyLEDS[2]->xPos != 0){
+      matrix.drawPixel(enemyLEDS[2]->yPos, enemyLEDS[2]->xPos, matrix.Color333(7, 7, 7));
+    }
   }
 }
 /*

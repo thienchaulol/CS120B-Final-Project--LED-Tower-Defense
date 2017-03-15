@@ -20,17 +20,14 @@
 //------------------------------------Shared Variables
 const unsigned char* playerInfo = "Gold:20  Stage:1Health:10"; //LCD Display variable
 unsigned char outgoingByte = 0x00; //USART0 outgoing byte
-unsigned char outgoingByte1 = 0x00; //USART1 outgoing byte
 unsigned char receivedByte = 0x00; //USART0 received byte
 int gold = 240; //Player's starting gold
 int health = 10; //Player's starting health
-unsigned char A2; //Used to test if LCD Display works.
 int level = 0x01; //Player's current level
 unsigned short x; //variable to record ADC value from 2-axis joystick
 unsigned char inGame; //true/false value that checks if user is "in game". TODO: UART 
 					  //when user is "in game", user cannot input any values; user will watch until level finish or loss
 					  //highest bit(bit 7) of outgoing byte to Arduino Uno
-unsigned int currentTurret; //Current turret selected to be placed. 2 = best, 1 = second best, 0 = third best
 unsigned char C0; //Start/Pause button
 unsigned char C1; //Place turret button
 unsigned char C2; //Select "blue" turret
@@ -112,9 +109,6 @@ int readadc(int ch)
 //------------------------------------FSMs
 //Maybe have only one type of turret due to time constraints.
 enum selectTurret_States{selTur_init, selTur_wait, selTur_bluePress, selTur_blueRelease, selTur_purpPress, selTur_purpRelease, selTur_greenPress, selTur_greenRelease};
-
-//"selTur" -> select turret
-
 int selTurTick(int state){
 	switch(state){
 		case selTur_init: state = selTur_wait; break;
@@ -338,13 +332,13 @@ int enemySMTick(int state){
 			if(USART_HasReceived(0)){
 				receivedByte = USART_Receive(0);
 				if(receivedByte == 2){
-					health -= 3;
+					health -= 20;
 				}
 				if(receivedByte == 3){
-					health -= 5;
+					health -= 20;
 				}
 				if(receivedByte == 4){
-					health -= 10;
+					health -= 20;
 				}
 				USART_Flush(0);
 			}
@@ -462,6 +456,7 @@ int main(void)
 	unsigned long int usartSMTick_calc = 100;
 	unsigned long int enemySMTick_calc = 100;
 	unsigned long int pulseForEnemyLED_calc = 100;
+	unsigned long int resetSMTick_calc = 100;
 	
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
@@ -470,6 +465,7 @@ int main(void)
 	tmpGCD = findGCD(tmpGCD, usartSMTick_calc);
 	tmpGCD = findGCD(tmpGCD, enemySMTick_calc);
 	tmpGCD = findGCD(tmpGCD, pulseForEnemyLED_calc);
+	tmpGCD = findGCD(tmpGCD, resetSMTick_calc);
 
 	//Greatest common divisor for all tasks or smallest time unit for tasks.
 	unsigned long int GCD = tmpGCD;
@@ -481,10 +477,11 @@ int main(void)
 	unsigned long int usartSMTick_period = usartSMTick_calc/GCD;
 	unsigned long int enemySMTick_period = enemySMTick_calc/GCD;
 	unsigned long int pulseForEnemyLEDTick_period = pulseForEnemyLED_calc/GCD;
+	unsigned long int resetSMTick_period = resetSMTick_calc/GCD;
 
 	//Declare an array of tasks
-	static task task1, task2, task5, task6, task7, task8;
-	task *tasks[] = { &task1, &task2, &task5, &task6, &task7, &task8};
+	static task task1, task2, task5, task6, task7, task8, task9;
+	task *tasks[] = { &task1, &task2, &task5, &task6, &task7, &task8, &task9};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 	
 	// Task 1
@@ -533,11 +530,11 @@ int main(void)
 	
 	unsigned short i; // Scheduler for-loop iterator
 	while(1) {
-		C0 = ~PINC & 0x01; //Start. TODO: Holding down C0 for 5 seconds resets the game
+		C0 = ~PINC & 0x01; //Start
 		C2 = ~PINC & 0x04; //Select "blue" turret //Best turret
 		C3 = ~PINC & 0x08; //Select "purple" turret //Second best turret
 		C4 = ~PINC & 0x10; //Select "green" turret //Third best turret
-		C5 = ~PINC & 0x20; //Reset
+		
 		// Scheduler code
 		for ( i = 0; i < numTasks; i++ ) {
 			// Task is ready to tick
