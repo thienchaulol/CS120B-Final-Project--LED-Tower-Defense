@@ -149,7 +149,7 @@ int selTurTick(int state){
 			towers[t]->cost = 20;
 			if(gold >= towers[t]->cost){
 				towers[t]->purchased = 1;
-				outgoingByte = outgoingByte | 0x10;
+				outgoingByte = outgoingByte | 0x10; // 0001 0000
 				gold -= towers[t]->cost;
 				t++;
 			}
@@ -160,7 +160,7 @@ int selTurTick(int state){
 			towers[t]->cost = 40;
 			if(gold >= towers[t]->cost){
 				towers[t]->purchased = 1;
-				outgoingByte = outgoingByte | 0x20;
+				outgoingByte = outgoingByte | 0x20; // 0010 0000
 				gold -= towers[t]->cost;
 				t++;
 			}
@@ -172,7 +172,7 @@ int selTurTick(int state){
 			towers[t]->cost = 60;
 			if(gold >= towers[t]->cost){
 				towers[t]->purchased = 1;
-				outgoingByte = outgoingByte | 0x30;
+				outgoingByte = outgoingByte | 0x30; // 0011 0000
 				gold -= towers[t]->cost;
 				t++;
 			}
@@ -199,11 +199,26 @@ int ADCTick(int state){
 			//LCD_DisplayString(1, itoa(x2, a, 10)); //Must disabled ClearScreen() in LCD_DisplayString() in io.c to see coordinates.
 			//LCD_DisplayString(17, itoa(y2, b, 10));
 			if(!inGame){ //NOTE: Cannot move cursor while in game
-				if(y2 > 150){ outgoingByte = outgoingByte | 0x08; } //Right
-				else if(y2 < -150){ outgoingByte = outgoingByte | 0x04; } //Left 
-				else if(x2 < -150){ outgoingByte = outgoingByte | 0x01; } //Up
-				else if(x2 > 150){ outgoingByte = outgoingByte | 0x02; } //Down
-				else{ outgoingByte = outgoingByte | 0x00; } //No Input
+				if(y2 > 150){ 
+					outgoingByte |= 0x08;
+					outgoingByte &= 0x08; 
+				} //Right. 0000 1000
+				else if(y2 < -150){ 
+					outgoingByte = outgoingByte | 0x04;
+					outgoingByte &= 0x04; 
+				} //Left. 0000 0100
+				else if(x2 < -150){ 
+					outgoingByte = outgoingByte | 0x01; 
+					outgoingByte &= 0x01;
+				} //Up. 0000 0001
+				else if(x2 > 150){ 
+					outgoingByte = outgoingByte | 0x02; 
+					outgoingByte &= 0x02;
+				} //Down. 0000 0010
+				else{ 
+					outgoingByte = outgoingByte | 0x00; 
+					outgoingByte &= 0x00;
+				} //No Input. 0000 0000
 			}
 			break;
 	}
@@ -276,7 +291,7 @@ enum enemySM{enemy_init, enemy_wait, enemy_C0Press, enemy_spawn, enemy_spawnWait
 int enemySMTick(int state){
 	switch(state){ //Transitions
 		case enemy_init:
-			spawnedEnemies = 0; //Initialize values in "transitions"
+			spawnedEnemies = -1; //Initialize values in "transitions"
 			enemyCount = 5; //"timeCount" won't be set if initialized in "actions"
 			timeCount = 0;
 			state = enemy_wait; 
