@@ -21,7 +21,7 @@
 const unsigned char* playerInfo = "Gold:20  Stage:1Health:10"; //LCD Display variable
 unsigned char outgoingByte = 0x00; //USART0 outgoing byte
 unsigned char receivedByte = 0x00; //USART0 received byte
-int gold = 240; //Player's starting gold
+int gold = 120; //Player's starting gold
 int health = 10; //Player's starting health
 int level = 0x01; //Player's current level
 unsigned short x; //variable to record ADC value from 2-axis joystick
@@ -456,7 +456,6 @@ int main(void)
 	unsigned long int usartSMTick_calc = 100;
 	unsigned long int enemySMTick_calc = 100;
 	unsigned long int pulseForEnemyLED_calc = 100;
-	unsigned long int resetSMTick_calc = 100;
 	
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
@@ -465,7 +464,6 @@ int main(void)
 	tmpGCD = findGCD(tmpGCD, usartSMTick_calc);
 	tmpGCD = findGCD(tmpGCD, enemySMTick_calc);
 	tmpGCD = findGCD(tmpGCD, pulseForEnemyLED_calc);
-	tmpGCD = findGCD(tmpGCD, resetSMTick_calc);
 
 	//Greatest common divisor for all tasks or smallest time unit for tasks.
 	unsigned long int GCD = tmpGCD;
@@ -477,11 +475,10 @@ int main(void)
 	unsigned long int usartSMTick_period = usartSMTick_calc/GCD;
 	unsigned long int enemySMTick_period = enemySMTick_calc/GCD;
 	unsigned long int pulseForEnemyLEDTick_period = pulseForEnemyLED_calc/GCD;
-	unsigned long int resetSMTick_period = resetSMTick_calc/GCD;
 
 	//Declare an array of tasks
-	static task task1, task2, task5, task6, task7, task8, task9;
-	task *tasks[] = { &task1, &task2, &task5, &task6, &task7, &task8, &task9};
+	static task task1, task2, task5, task6, task7, task8;
+	task *tasks[] = { &task1, &task2, &task5, &task6, &task7, &task8};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 	
 	// Task 1
