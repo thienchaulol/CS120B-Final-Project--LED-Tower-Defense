@@ -75,12 +75,12 @@ void loop() {
 
 //------------------------Functions
 void drawEnemies(){
-  if(incomingByte == 0x81){ enemyLEDS[0]->active = 1; }
+  if(incomingByte == 0x81){ enemyLEDS[0]->active = 1; } //Activate enemy LED
   if(incomingByte == 0x82) { enemyLEDS[1]->active = 1; }
   if(incomingByte == 0x83) { enemyLEDS[2]->active = 1; }
   if(incomingByte == 0x84) { enemyLEDS[3]->active = 1; }
   if(incomingByte == 0x85) {enemyLEDS[4]->active = 1; }
-  if(enemyLEDS[0]->active == 1) { drawEnemyOne(); } //Draw enemies
+  if(enemyLEDS[0]->active == 1) { drawEnemyOne(); } //Draw enemy LED
   if(enemyLEDS[1]->active == 1) { drawEnemyTwo(); }
   if(enemyLEDS[2]->active == 1) { drawEnemyThree(); }
   if(enemyLEDS[3]->active == 1) { drawEnemyFour(); }
@@ -88,25 +88,25 @@ void drawEnemies(){
 }
 
 void checkCursor(){
-  if(incomingByte == 0x08 && cursorY < 31){ cursorY++;} //right 
-  else if(incomingByte == 0x04 && cursorY > 0){ cursorY--;}  //left
-  else if(incomingByte == 0x01 && cursorX > 0){ cursorX--;} //up
-  else if(incomingByte == 0x02 && cursorX < 15){ cursorX++;} //down
-  else if(incomingByte == 0x00){ }
+  if(incomingByte == 0x08 && cursorY < 31){ cursorY++;} //Move right 
+  else if(incomingByte == 0x04 && cursorY > 0){ cursorY--;}  //Move left
+  else if(incomingByte == 0x01 && cursorX > 0){ cursorX--;} //Move up
+  else if(incomingByte == 0x02 && cursorX < 15){ cursorX++;} //Move down
+  else if(incomingByte == 0x00){ } //Don't move
   matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draws cursor's position
 }
 
 void checkTowers(){
- if(incomingByte == 0x10){
-    towerLEDS[t]->xPos = cursorX;
+ if(incomingByte == 0x10){ //Yellow tower
+    towerLEDS[t]->xPos = cursorX; //Draw tower at cursor position
     towerLEDS[t]->yPos = cursorY;
-    Serial.write(20); 
+    Serial.write(20); //Write cost to ATmega1284
     Serial.flush(); 
-    towerLEDS[t]->type = 1; 
-    towerLEDS[t]->effectRadius = 1;
-    towerLEDS[t]->active = 1;
-    t++;
- } else if(incomingByte == 0x20){
+    towerLEDS[t]->type = 1; //Save tower type
+    towerLEDS[t]->effectRadius = 1; //Set tower visual effect radius
+    towerLEDS[t]->active = 1; //Activate tower
+    t++; //Increment t
+ } else if(incomingByte == 0x20){ //Cyan tower
     towerLEDS[t]->xPos = cursorX;
     towerLEDS[t]->yPos = cursorY;
     Serial.write(40); 
@@ -115,7 +115,7 @@ void checkTowers(){
     towerLEDS[t]->effectRadius = 1;
     towerLEDS[t]->active = 1;
     t++;
- } else if(incomingByte == 0x30){
+ } else if(incomingByte == 0x30){ //Green tower
     towerLEDS[t]->xPos = cursorX;
     towerLEDS[t]->yPos = cursorY;
     Serial.write(60); 
@@ -125,12 +125,11 @@ void checkTowers(){
     towerLEDS[t]->active = 1;
     t++;
  }
- drawAllActiveTowers(); //Draws all purchased towers
+ drawAllActiveTowers(); //Draw all purchased towers
 }
 
 void drawEnemyOne(){
   //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  //Draw a moving LED
   matrix.fillCircle(8, 2, 1, matrix.Color333(7, 0, 0)); 
 }
 void drawEnemyTwo(){
