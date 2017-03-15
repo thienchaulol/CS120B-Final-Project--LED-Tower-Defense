@@ -245,8 +245,8 @@ int LCDTick(int state){
 		case LCD_initialize: break;
 		case LCD_info:
 			if(USART_HasReceived(0)){ //update info
-				//receivedByte = USART_Receive(0); //check USART0
-				//USART_Flush(0);
+				receivedByte = USART_Receive(0); //check USART0
+				USART_Flush(0);
 				if(receivedByte << 2 == 20){ 
 					gold -= 20;
 					updatePlayerInfo(gold, level, health);
@@ -277,10 +277,10 @@ int usartSMTick(int state){
 	switch(state){
 		case usartSM_init: break;
 		case usartSM_check0:
-			if(USART_HasReceived(0)){
+			/*if(USART_HasReceived(0)){
 				receivedByte = USART_Receive(0);
 				USART_Flush(0);
-			}
+			}*/
 			if(USART_IsSendReady(0)){ //if the USART is ready
 				USART_Send(outgoingByte, 0); //send USART 0
 				outgoingByte &= 0x80; //Reset bits 0-6 after being sent. Keep track of 7th bit to see if inGame
@@ -335,17 +335,18 @@ int enemySMTick(int state){
 		case enemy_wait: break;
 		case enemy_C0Press: break;
 		case enemy_spawn: //Send info to USART about enemies. //TODO: Check if player's health reaches 0
-			if(receivedByte == 2){
-				health -= 3;
-				//receivedByte = 0;
-			}
-			if(receivedByte == 3){
-				health -= 5;
-				//receivedByte = 0;
-			}
-			if(receivedByte == 4){
-				health -= 10;
-				//receivedByte = 0;
+			if(USART_HasReceived(0)){
+				receivedByte = USART_Receive(0);
+				if(receivedByte == 2){
+					health -= 3;
+				}
+				if(receivedByte == 3){
+					health -= 5;
+				}
+				if(receivedByte == 4){
+					health -= 10;
+				}
+				USART_Flush(0);
 			}
 			spawnedEnemies++; 
 			break;
