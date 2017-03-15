@@ -12,13 +12,13 @@ RGBmatrixPanel matrix(A, B, C, CLK, LAT, OE, true);
 //------------------------Variables
 int incomingByte = 0; //USART byte
 unsigned int level = 1; //Current level //TODO: make level work dynamically
-unsigned int inGame = 0; //0 = not in game, 1 = in game
 unsigned int cursorX = 14; //X position of cursor
 unsigned int cursorY = 30; //Y position of cursor
 unsigned char movement = 0x00; //New cursor position
 unsigned char tower = 0x00; //Selected turret
 unsigned char t = 0; //Used to index through towerLEDS[]
-unsigned char numActiveTowers = 0;
+unsigned char numActiveTowers = 0; //Number of purchased towers
+unsigned char enemiesMoving = 0; //Returns 1 if any enemy is active. 0 if no enemies active
 
 //------------------------Setup()
 void setup() {
@@ -29,7 +29,7 @@ void setup() {
 
 //------------------------Enemies
 typedef struct enemyLED{
-  unsigned char active;
+  unsigned char xPos, yPos, active;
 } enemyLED;
 enemyLED enemyLED1, enemyLED2, enemyLED3, enemyLED4, enemyLED5;
 enemyLED *enemyLEDS[] = { &enemyLED1, &enemyLED2, &enemyLED3, &enemyLED4, &enemyLED5 };
@@ -47,18 +47,14 @@ const unsigned short numTowers = sizeof(towerLEDS)/sizeof(towerLED*);
 void moveCursor(); //Moves cursor
 void levels(); //Draws level
 void drawAllActiveTowers(); //Draws purchased towers
-void checkCursor();
-void checkTowers();
-void drawEnemies();
-void drawEnemyOne();
-void drawEnemyTwo();
-void drawEnemyThree();
-void drawEnemyFour();
-void drawEnemyFive();
-
-//------------------------State Machine
-enum matrixDisplaySM{matrix_init, notInGameState, moveCursor_Press, moveCursor_Release} state;
-
+void checkCursor(); //Adjusts cursor values
+void checkTowers(); //Adjusts towerLEDS[] elements
+void drawEnemies(); //Draws enemies
+void drawEnemyOne(); //Enemy 1
+void drawEnemyTwo(); //Enemy 2
+void drawEnemyThree(); //Enemy 3
+void drawEnemyFour(); //Enemy 4
+void drawEnemyFive(); //Enemy 5
 //------------------------Loop()
 void loop() {
   if(Serial.available() > 0){
@@ -66,8 +62,10 @@ void loop() {
   }
   matrix.fillScreen(0);
   drawEnemies(); //Checks user input and draws enemies
-  checkCursor(); //Checks user input and moves cursor
-  checkTowers(); //Checks user input and draws towers
+  //if(!enemiesMoving){ //If enemies are not moving, user can edit the map
+    checkCursor(); //Checks user input and moves cursor
+    checkTowers(); //Checks user input and draws towers
+  //}
   levels(); //Display current level
   matrix.swapBuffers(false); //Update Display
   delay(60 - (numActiveTowers*20)); //TODO: Find more exact equation for cursor delay.
@@ -75,11 +73,32 @@ void loop() {
 
 //------------------------Functions
 void drawEnemies(){
-  if(incomingByte == 0x81){ enemyLEDS[0]->active = 1; } //Activate enemy LED
-  if(incomingByte == 0x82) { enemyLEDS[1]->active = 1; }
-  if(incomingByte == 0x83) { enemyLEDS[2]->active = 1; }
-  if(incomingByte == 0x84) { enemyLEDS[3]->active = 1; }
-  if(incomingByte == 0x85) {enemyLEDS[4]->active = 1; }
+  //enemiesMoving = 1; //Enemies begin moving. Return 0 when no enemies active
+  if(incomingByte == 0x81){ //Activate enemy LED
+    enemyLEDS[0]->xPos = 0; 
+    enemyLEDS[0]->yPos = 0;
+    enemyLEDS[0]->active = 1; 
+  }
+  if(incomingByte == 0x82){ 
+    enemyLEDS[1]->xPos = 0; 
+    enemyLEDS[1]->yPos = 0;
+    enemyLEDS[1]->active = 1; 
+  }
+  if(incomingByte == 0x83){
+    enemyLEDS[2]->xPos = 0; 
+    enemyLEDS[2]->yPos = 0; 
+    enemyLEDS[2]->active = 1; 
+  }
+  if(incomingByte == 0x84){
+    enemyLEDS[3]->xPos = 0; 
+    enemyLEDS[3]->yPos = 0; 
+    enemyLEDS[3]->active = 1; 
+  }
+  if(incomingByte == 0x85){
+    enemyLEDS[4]->xPos = 0; 
+    enemyLEDS[4]->yPos = 0;
+    enemyLEDS[4]->active = 1; 
+  }
   if(enemyLEDS[0]->active == 1) { drawEnemyOne(); } //Draw enemy LED
   if(enemyLEDS[1]->active == 1) { drawEnemyTwo(); }
   if(enemyLEDS[2]->active == 1) { drawEnemyThree(); }
@@ -128,27 +147,6 @@ void checkTowers(){
  drawAllActiveTowers(); //Draw all purchased towers
 }
 
-void drawEnemyOne(){
-  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.fillCircle(8, 2, 1, matrix.Color333(7, 0, 0)); 
-}
-void drawEnemyTwo(){
-  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.fillCircle(12, 2, 1, matrix.Color333(0, 7, 0));
-}
-void drawEnemyThree(){
-  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.fillCircle(16, 2, 1, matrix.Color333(0, 0, 7));
-}
-void drawEnemyFour(){
-  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.fillCircle(20, 2, 1, matrix.Color333(7, 0, 0));
-}
-void drawEnemyFive(){
-  //- Each enemy LED will have a function that will draw the pixel on it's path for each level
-  matrix.fillCircle(24, 2, 1, matrix.Color333(0, 7, 0));
-}
-
 void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
   for(int i = 0; i < numTowers; i++){
     if(towerLEDS[i]->active){
@@ -177,6 +175,42 @@ void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
       if(numActiveTowers < 3) numActiveTowers++;
     }
   }
+}
+
+void drawEnemyOne(){ //Moves enemy one
+  if(level == 1){
+    if(incomingByte == 0xFF){
+      if(enemyLEDS[0]->yPos == 31){
+        enemyLEDS[0]->active = 0;
+        //Subtract health
+      } 
+      if(enemyLEDS[0]->yPos < 10){
+        enemyLEDS[0]->xPos = 7;
+        enemyLEDS[0]->yPos = (enemyLEDS[0]->yPos) + 1; 
+      } else if(enemyLEDS[0]->xPos == 6 && enemyLEDS[0]->yPos < 31){
+        enemyLEDS[0]->yPos = (enemyLEDS[0]->yPos) + 1;
+      } else if((enemyLEDS[0]->yPos >= 10 && enemyLEDS[0]->yPos != 21) && enemyLEDS[0]->xPos < 14){
+        enemyLEDS[0]->xPos = (enemyLEDS[0]->xPos) + 1;
+      } else if(enemyLEDS[0]->xPos >= 14 && enemyLEDS[0]->yPos < 21){
+        enemyLEDS[0]->yPos = (enemyLEDS[0]->yPos) + 1;
+      } else if(enemyLEDS[0]->yPos == 21 && enemyLEDS[0]->xPos > 6){
+        enemyLEDS[0]->xPos = (enemyLEDS[0]->xPos) - 1;
+      }
+    }
+    matrix.drawPixel(enemyLEDS[0]->yPos, enemyLEDS[0]->xPos, matrix.Color333(7, 7, 7));
+  }
+}
+void drawEnemyTwo(){
+  matrix.fillCircle(12, 2, 1, matrix.Color333(0, 7, 0));
+}
+void drawEnemyThree(){
+  matrix.fillCircle(16, 2, 1, matrix.Color333(0, 0, 7));
+}
+void drawEnemyFour(){
+  matrix.fillCircle(20, 2, 1, matrix.Color333(7, 0, 0));
+}
+void drawEnemyFive(){
+  matrix.fillCircle(24, 2, 1, matrix.Color333(0, 7, 0));
 }
 
 void levels(){

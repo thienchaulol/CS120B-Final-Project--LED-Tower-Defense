@@ -287,8 +287,6 @@ int usartSMTick(int state){
 }
 
 unsigned char spawnedEnemies, enemyCount, timeCount;
-
-//Deals with enemies and current level
 enum enemySM{enemy_init, enemy_wait, enemy_C0Press, enemy_spawn, enemy_spawnWait, enemy_levelComplete};
 
 int enemySMTick(int state){
@@ -310,8 +308,10 @@ int enemySMTick(int state){
 		case enemy_spawn:
 			if(spawnedEnemies < enemyCount){ 
 				state = enemy_spawnWait; 
-			} else if(spawnedEnemies >= enemyCount){ 
+			} else if(spawnedEnemies >= enemyCount && receivedByte == 0xFF){ 
 				state = enemy_levelComplete; 
+			} else {
+				state = enemy_spawn;
 			}
 			break;
 		case enemy_spawnWait:
@@ -382,6 +382,46 @@ int enemySMTick(int state){
 	return state;
 }
 
+enum pulseForEnemyLED{pulse_init, pulse_waitSec, pulse_send};
+
+unsigned char pulseCount;
+int pulseForEnemyLEDTick(int state){
+	switch(state){
+		case pulse_init:
+			if(inGame){
+				state = pulse_waitSec;
+			} else if(!inGame){
+				state = pulse_init;
+			}
+			break;
+		case pulse_waitSec:
+			if(!inGame){
+				state = pulse_init;
+			} else if(pulseCount >= 3){
+				state = pulse_send;
+			} else if(pulseCount < 3){
+				state = pulse_waitSec;
+			}
+			break;
+		case pulse_send:
+			pulseCount = 0;
+			state = pulse_waitSec;
+			break;
+	}
+	switch(state){
+		case pulse_init:
+			pulseCount = 0;
+			break;
+		case pulse_waitSec:
+			pulseCount++;
+			break;
+		case pulse_send:
+			outgoingByte |= 0xFF; // 1111 1111
+			outgoingByte &= 0xFF;
+			break;
+	}
+	return state;
+}
 //------------------------------------End FSMs
 
 int main(void)
@@ -397,6 +437,7 @@ int main(void)
 	unsigned long int selTurTick_calc = 200;
 	unsigned long int usartSMTick_calc = 100;
 	unsigned long int enemySMTick_calc = 100;
+	unsigned long int pulseForEnemyLED_calc = 100;
 	
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
@@ -404,6 +445,7 @@ int main(void)
 	tmpGCD = findGCD(tmpGCD, selTurTick_calc);
 	tmpGCD = findGCD(tmpGCD, usartSMTick_calc);
 	tmpGCD = findGCD(tmpGCD, enemySMTick_calc);
+	tmpGCD = findGCD(tmpGCD, pulseForEnemyLED_calc);
 
 	//Greatest common divisor for all tasks or smallest time unit for tasks.
 	unsigned long int GCD = tmpGCD;
@@ -414,10 +456,11 @@ int main(void)
 	unsigned long int selTurTick_period = selTurTick_calc/GCD;
 	unsigned long int usartSMTick_period = usartSMTick_calc/GCD;
 	unsigned long int enemySMTick_period = enemySMTick_calc/GCD;
+	unsigned long int pulseForEnemyLEDTick_period = pulseForEnemyLED_calc/GCD;
 
 	//Declare an array of tasks
-	static task task1, task2, task5, task6, task7;
-	task *tasks[] = { &task1, &task2, &task5, &task6, &task7};
+	static task task1, task2, task5, task6, task7, task8;
+	task *tasks[] = { &task1, &task2, &task5, &task6, &task7, &task8};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 	
 	// Task 1
@@ -449,6 +492,12 @@ int main(void)
 	task7.period = enemySMTick_period;
 	task7.elapsedTime = enemySMTick_period;
 	task7.TickFct = &enemySMTick;
+	
+	//Task 8
+	task8.state = pulse_init;
+	task8.period = pulseForEnemyLEDTick_period;
+	task8.elapsedTime = pulseForEnemyLEDTick_period;
+	task8.TickFct = &pulseForEnemyLEDTick;
 	
 	TimerSet(GCD);
 	TimerOn();
