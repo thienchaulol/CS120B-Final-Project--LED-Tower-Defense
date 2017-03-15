@@ -55,6 +55,8 @@ void drawEnemyTwo(); //Enemy 2
 void drawEnemyThree(); //Enemy 3
 void drawEnemyFour(); //Enemy 4
 void drawEnemyFive(); //Enemy 5
+void checkAllActiveEnemies();
+
 //------------------------Loop()
 void loop() {
   if(Serial.available() > 0){
@@ -62,16 +64,25 @@ void loop() {
   }
   matrix.fillScreen(0);
   drawEnemies(); //Checks user input and draws enemies
-  //if(!enemiesMoving){ //If enemies are not moving, user can edit the map
-    checkCursor(); //Checks user input and moves cursor
-    checkTowers(); //Checks user input and draws towers
-  //}
+  checkCursor(); //Checks user input and moves cursor
+  checkTowers(); //Checks user input and draws towers
   levels(); //Display current level
   matrix.swapBuffers(false); //Update Display
   delay(60 - (numActiveTowers*20)); //TODO: Find more exact equation for cursor delay.
 }
 
 //------------------------Functions
+void checkAllActiveEnemies(){
+  for(int i = 0; i < 5; i++){
+    if(enemyLEDS[i]->active){
+      return;
+    }
+  }
+  Serial.write(1);
+  Serial.flush();
+  return;
+}
+
 void drawEnemies(){
   //enemiesMoving = 1; //Enemies begin moving. Return 0 when no enemies active
   if(incomingByte == 0x81){ //Activate enemy LED
@@ -82,22 +93,22 @@ void drawEnemies(){
   if(incomingByte == 0x82){ 
     enemyLEDS[1]->xPos = 0; 
     enemyLEDS[1]->yPos = 0;
-    enemyLEDS[1]->active = 1; 
+    //enemyLEDS[1]->active = 1; 
   }
   if(incomingByte == 0x83){
     enemyLEDS[2]->xPos = 0; 
     enemyLEDS[2]->yPos = 0; 
-    enemyLEDS[2]->active = 1; 
+    //enemyLEDS[2]->active = 1; 
   }
   if(incomingByte == 0x84){
     enemyLEDS[3]->xPos = 0; 
     enemyLEDS[3]->yPos = 0; 
-    enemyLEDS[3]->active = 1; 
+    //enemyLEDS[3]->active = 1; 
   }
   if(incomingByte == 0x85){
     enemyLEDS[4]->xPos = 0; 
     enemyLEDS[4]->yPos = 0;
-    enemyLEDS[4]->active = 1; 
+    //enemyLEDS[4]->active = 1; 
   }
   if(enemyLEDS[0]->active == 1) { drawEnemyOne(); } //Draw enemy LED
   if(enemyLEDS[1]->active == 1) { drawEnemyTwo(); }
@@ -116,35 +127,35 @@ void checkCursor(){
 }
 
 void checkTowers(){
- if(incomingByte == 0x10){ //Yellow tower
-    towerLEDS[t]->xPos = cursorX; //Draw tower at cursor position
-    towerLEDS[t]->yPos = cursorY;
-    Serial.write(20); //Write cost to ATmega1284
-    Serial.flush(); 
-    towerLEDS[t]->type = 1; //Save tower type
-    towerLEDS[t]->effectRadius = 1; //Set tower visual effect radius
-    towerLEDS[t]->active = 1; //Activate tower
-    t++; //Increment t
- } else if(incomingByte == 0x20){ //Cyan tower
-    towerLEDS[t]->xPos = cursorX;
-    towerLEDS[t]->yPos = cursorY;
-    Serial.write(40); 
-    Serial.flush(); 
-    towerLEDS[t]->type = 2; 
-    towerLEDS[t]->effectRadius = 1;
-    towerLEDS[t]->active = 1;
-    t++;
- } else if(incomingByte == 0x30){ //Green tower
-    towerLEDS[t]->xPos = cursorX;
-    towerLEDS[t]->yPos = cursorY;
-    Serial.write(60); 
-    Serial.flush(); 
-    towerLEDS[t]->type = 3; 
-    towerLEDS[t]->effectRadius = 1;
-    towerLEDS[t]->active = 1;
-    t++;
- }
- drawAllActiveTowers(); //Draw all purchased towers
+   if(incomingByte == 0x10){ //Yellow tower
+      towerLEDS[t]->xPos = cursorX; //Draw tower at cursor position
+      towerLEDS[t]->yPos = cursorY;
+      Serial.write(20); //Write cost to ATmega1284
+      Serial.flush(); 
+      towerLEDS[t]->type = 1; //Save tower type
+      towerLEDS[t]->effectRadius = 1; //Set tower visual effect radius
+      towerLEDS[t]->active = 1; //Activate tower
+      t++; //Increment t
+   } else if(incomingByte == 0x20){ //Cyan tower
+      towerLEDS[t]->xPos = cursorX;
+      towerLEDS[t]->yPos = cursorY;
+      Serial.write(40); 
+      Serial.flush(); 
+      towerLEDS[t]->type = 2; 
+      towerLEDS[t]->effectRadius = 1;
+      towerLEDS[t]->active = 1;
+      t++;
+   } else if(incomingByte == 0x30){ //Green tower
+      towerLEDS[t]->xPos = cursorX;
+      towerLEDS[t]->yPos = cursorY;
+      Serial.write(60); 
+      Serial.flush(); 
+      towerLEDS[t]->type = 3; 
+      towerLEDS[t]->effectRadius = 1;
+      towerLEDS[t]->active = 1;
+      t++;
+   }
+   drawAllActiveTowers(); //Draw all purchased towers
 }
 
 void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
@@ -183,6 +194,7 @@ void drawEnemyOne(){ //Moves enemy one
       if(enemyLEDS[0]->yPos == 31){
         enemyLEDS[0]->active = 0;
         //Subtract health
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       } 
       if(enemyLEDS[0]->yPos < 10){
         enemyLEDS[0]->xPos = 7;

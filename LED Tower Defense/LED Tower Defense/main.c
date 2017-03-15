@@ -308,7 +308,7 @@ int enemySMTick(int state){
 		case enemy_spawn:
 			if(spawnedEnemies < enemyCount){ 
 				state = enemy_spawnWait; 
-			} else if(spawnedEnemies >= enemyCount && receivedByte == 0xFF){ 
+			} else if((spawnedEnemies >= enemyCount) && (receivedByte == 1)){
 				state = enemy_levelComplete; 
 			} else {
 				state = enemy_spawn;
@@ -316,6 +316,10 @@ int enemySMTick(int state){
 			break;
 		case enemy_spawnWait:
 			if(timeCount >= 15){
+				if(USART_HasReceived(0)){
+					receivedByte = USART_Receive(0); //check USART0
+					USART_Flush(0);
+				}
 				state = enemy_spawn; 
 			} 
 			else if(timeCount < 15){
