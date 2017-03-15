@@ -73,17 +73,6 @@ void loop() {
 }
 
 //------------------------Functions
-void checkAllActiveEnemies(){
-  for(int i = 0; i < 5; i++){
-    if(enemyLEDS[i]->active){
-      return;
-    }
-  }
-  Serial.write(1); //Send a byte
-  Serial.flush();
-  return;
-}
-
 void drawEnemies(){
   //enemiesMoving = 1; //Enemies begin moving. Return 0 when no enemies active
   if(incomingByte == 0x81){ //Activate enemy LED
@@ -117,7 +106,6 @@ void drawEnemies(){
   if(enemyLEDS[0]->active == 1) { drawEnemyOne(); } //Draw enemy LED
   if(enemyLEDS[1]->active == 1) { drawEnemyTwo(); }
   if(enemyLEDS[2]->active == 1) { drawEnemyThree(); }
-  checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
   if(enemyLEDS[3]->active == 1) { /*drawEnemyFour();*/ }
   if(enemyLEDS[4]->active == 1) { /*drawEnemyFive();*/ }
 }
@@ -211,18 +199,33 @@ void checkIfEnemyTakesDamage(unsigned char enemyLEDIndex){
   }
 }
 
+void checkAllActiveEnemies(){
+  for(int i = 0; i < 5; i++){
+    if(enemyLEDS[i]->active){
+      return;
+    }
+  }
+  Serial.write(1); //Send a byte
+  Serial.flush();
+  return;
+}
+
 void drawEnemyOne(){ //Moves enemy one
   if(level == 1){
     if(incomingByte == 0xFF){
       checkIfEnemyTakesDamage(0); //Calculate tower damage
       if(enemyLEDS[0]->health <= 0){ //Check to see if enemyLED health is 0
         enemyLEDS[0]->active = 0;
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
+      }
+      if(enemyLEDS[0]->yPos == 29){
+        //Subtract health from player
+        //Serial.write(2);
+        //Serial.flush();
       }
       if(enemyLEDS[0]->yPos == 30){ //Enemy reaches end of map
-        //Subtract health from player
-        Serial.write(2);
-        Serial.flush();
         enemyLEDS[0]->active = 0;
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       } 
       if(enemyLEDS[0]->yPos < 10){
         enemyLEDS[0]->xPos = 7;
@@ -240,18 +243,23 @@ void drawEnemyOne(){ //Moves enemy one
     matrix.drawPixel(enemyLEDS[0]->yPos, enemyLEDS[0]->xPos, matrix.Color333(7, 7, 7));
   }
 }
+
 void drawEnemyTwo(){ //Moves enemy two
   if(level == 1){
     if(incomingByte == 0xFF){
       checkIfEnemyTakesDamage(1);
       if(enemyLEDS[1]->health <= 0){
         enemyLEDS[1]->active = 0;
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
+      }
+      if(enemyLEDS[1]->yPos == 29){
+        //Subtract health from player
+        //Serial.write(3);
+        //Serial.flush();
       }
       if(enemyLEDS[1]->yPos == 30){
-        //Subtract health from player
-        Serial.write(3);
-        Serial.flush();
         enemyLEDS[1]->active = 0;
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       } 
       if(enemyLEDS[1]->yPos < 10){
         enemyLEDS[1]->xPos = 7;
@@ -269,18 +277,23 @@ void drawEnemyTwo(){ //Moves enemy two
     matrix.drawPixel(enemyLEDS[1]->yPos, enemyLEDS[1]->xPos, matrix.Color333(4, 4, 4));
   }
 }
+
 void drawEnemyThree(){ //Moves enemy three
   if(level == 1){
     if(incomingByte == 0xFF){
       checkIfEnemyTakesDamage(2);
       if(enemyLEDS[2]->health <= 0){
         enemyLEDS[2]->active = 0;
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
+      }
+      if(enemyLEDS[2]->yPos == 29){
+        //Subtract health from player
+        //Serial.write(4);
+        //Serial.flush();
       }
       if(enemyLEDS[2]->yPos == 30){
-        //Subtract health from player
-        Serial.write(4);
-        Serial.flush();
         enemyLEDS[2]->active = 0;
+        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       } 
       if(enemyLEDS[2]->yPos < 10){
         enemyLEDS[2]->xPos = 7;
@@ -298,6 +311,7 @@ void drawEnemyThree(){ //Moves enemy three
     matrix.drawPixel(enemyLEDS[2]->yPos, enemyLEDS[2]->xPos, matrix.Color333(7, 7, 7));
   }
 }
+/*
 void drawEnemyFour(){ //Moves enemy four
   if(level == 1){
     if(incomingByte == 0xFF){
@@ -349,7 +363,7 @@ void drawEnemyFive(){ //Moves enemy five
     matrix.drawPixel(enemyLEDS[4]->yPos, enemyLEDS[4]->xPos, matrix.Color333(7, 7, 7));
   }
 }
-
+*/
 void levels(){
   if(level == 1){
     matrix.drawLine(0, 8, 9, 8, matrix.Color333(7, 0, 0));
