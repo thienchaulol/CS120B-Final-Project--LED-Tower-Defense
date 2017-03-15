@@ -29,7 +29,8 @@ void setup() {
 
 //------------------------Enemies
 typedef struct enemyLED{
-  unsigned char xPos, yPos, health, active;
+  unsigned char xPos, yPos, active;
+  signed short health;
 } enemyLED;
 enemyLED enemyLED1, enemyLED2, enemyLED3, enemyLED4, enemyLED5;
 enemyLED *enemyLEDS[] = { &enemyLED1, &enemyLED2, &enemyLED3, &enemyLED4, &enemyLED5 };
@@ -78,19 +79,19 @@ void drawEnemies(){
   if(incomingByte == 0x81){ //Activate enemy LED
     enemyLEDS[0]->xPos = 0; 
     enemyLEDS[0]->yPos = 0;
-    enemyLEDS[0]->health = 5;
+    enemyLEDS[0]->health = 100;
     enemyLEDS[0]->active = 1;
   }
   if(incomingByte == 0x82){ 
     enemyLEDS[1]->xPos = 0; 
     enemyLEDS[1]->yPos = 0;
-    enemyLEDS[1]->health = 20;
+    enemyLEDS[1]->health = 250;
     enemyLEDS[1]->active = 1; 
   }
   if(incomingByte == 0x83){
     enemyLEDS[2]->xPos = 0; 
     enemyLEDS[2]->yPos = 0; 
-    enemyLEDS[2]->health = 30;
+    enemyLEDS[2]->health = 500;
     enemyLEDS[2]->active = 1; 
   }
   if(incomingByte == 0x84){
@@ -182,21 +183,21 @@ void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
 }
 
 void checkIfEnemyTakesDamage(unsigned char enemyLEDIndex){
-  if(incomingByte == 0xFF){
+  //if(incomingByte == 0xFF){
     if(numActiveTowers == 0){ return; }
     for(unsigned char i = 0; i < numTowers; i++){
       if(enemyLEDS[enemyLEDIndex]->xPos == towerLEDS[i]->xPos + 2|| enemyLEDS[enemyLEDIndex]->xPos == towerLEDS[i]->xPos - 2 ||
           enemyLEDS[enemyLEDIndex]->yPos == towerLEDS[i]->yPos + 2 || enemyLEDS[enemyLEDIndex]->yPos == towerLEDS[i]->yPos - 2){
         if(towerLEDS[i]->type == 1){
-          enemyLEDS[enemyLEDIndex]->health -= 1;
-        } else if(towerLEDS[i]->type == 2){
-          enemyLEDS[enemyLEDIndex]->health -= 3;
-        } else if(towerLEDS[i]->type == 3){
           enemyLEDS[enemyLEDIndex]->health -= 5;
+        } else if(towerLEDS[i]->type == 2){
+          enemyLEDS[enemyLEDIndex]->health -= 10;
+        } else if(towerLEDS[i]->type == 3){
+          enemyLEDS[enemyLEDIndex]->health -= 15;
         }
       }
     }
-  }
+  //}
 }
 
 void checkAllActiveEnemies(){
@@ -214,7 +215,7 @@ void drawEnemyOne(){ //Moves enemy one
   if(level == 1){
     if(incomingByte == 0xFF){
       checkIfEnemyTakesDamage(0); //Calculate tower damage
-      if(enemyLEDS[0]->health <= 0){ //Check to see if enemyLED health is 0
+      if(enemyLEDS[0]->health <= 0 || enemyLEDS[0]->yPos == 30){ //Check to see if enemyLED health is 0
         enemyLEDS[0]->active = 0;
         checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       }
@@ -223,10 +224,6 @@ void drawEnemyOne(){ //Moves enemy one
         Serial.write(2);
         Serial.flush();
       }
-      if(enemyLEDS[0]->yPos == 30){ //Enemy reaches end of map
-        enemyLEDS[0]->active = 0;
-        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
-      } 
       if(enemyLEDS[0]->yPos < 10){
         enemyLEDS[0]->xPos = 7;
         enemyLEDS[0]->yPos = (enemyLEDS[0]->yPos) + 1; 
@@ -248,7 +245,7 @@ void drawEnemyTwo(){ //Moves enemy two
   if(level == 1){
     if(incomingByte == 0xFF){
       checkIfEnemyTakesDamage(1);
-      if(enemyLEDS[1]->health <= 0){
+      if(enemyLEDS[1]->health <= 0 || enemyLEDS[1]->yPos == 30){
         enemyLEDS[1]->active = 0;
         checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       }
@@ -257,10 +254,6 @@ void drawEnemyTwo(){ //Moves enemy two
         Serial.write(3);
         Serial.flush();
       }
-      if(enemyLEDS[1]->yPos == 30){
-        enemyLEDS[1]->active = 0;
-        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
-      } 
       if(enemyLEDS[1]->yPos < 10){
         enemyLEDS[1]->xPos = 7;
         enemyLEDS[1]->yPos = (enemyLEDS[1]->yPos) + 1; 
@@ -274,7 +267,7 @@ void drawEnemyTwo(){ //Moves enemy two
         enemyLEDS[1]->xPos = (enemyLEDS[1]->xPos) - 1;
       }
     }
-    matrix.drawPixel(enemyLEDS[1]->yPos, enemyLEDS[1]->xPos, matrix.Color333(4, 4, 4));
+    matrix.drawPixel(enemyLEDS[1]->yPos, enemyLEDS[1]->xPos, matrix.Color333(7, 7, 7));
   }
 }
 
@@ -282,7 +275,7 @@ void drawEnemyThree(){ //Moves enemy three
   if(level == 1){
     if(incomingByte == 0xFF){
       checkIfEnemyTakesDamage(2);
-      if(enemyLEDS[2]->health <= 0){
+      if(enemyLEDS[2]->health <= 0 || enemyLEDS[2]->yPos == 30){
         enemyLEDS[2]->active = 0;
         checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
       }
@@ -291,10 +284,6 @@ void drawEnemyThree(){ //Moves enemy three
         Serial.write(4);
         Serial.flush();
       }
-      if(enemyLEDS[2]->yPos == 30){
-        enemyLEDS[2]->active = 0;
-        checkAllActiveEnemies(); //Writes to ATmega1284 if no enemies are active
-      } 
       if(enemyLEDS[2]->yPos < 10){
         enemyLEDS[2]->xPos = 7;
         enemyLEDS[2]->yPos = (enemyLEDS[2]->yPos) + 1; 

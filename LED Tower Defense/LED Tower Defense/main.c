@@ -245,8 +245,8 @@ int LCDTick(int state){
 		case LCD_initialize: break;
 		case LCD_info:
 			if(USART_HasReceived(0)){ //update info
-				receivedByte = USART_Receive(0); //check USART0
-				USART_Flush(0);
+				//receivedByte = USART_Receive(0); //check USART0
+				//USART_Flush(0);
 				if(receivedByte << 2 == 20){ 
 					gold -= 20;
 					updatePlayerInfo(gold, level, health);
@@ -377,7 +377,12 @@ int enemySMTick(int state){
 			break;
 		case enemy_levelComplete:
 			outgoingByte &= 0x7F; // "inGame bit" to 0
-			if(level == 1){ 
+			if(health <= 0){
+				LCD_DisplayString(1, "You lose");
+			} else if(health >= 0){
+				LCD_DisplayString(1, "You win");
+			}
+			/*if(level == 1){ 
 				gold += 25;
 				level++;
 				updatePlayerInfo(gold, level, health); 
@@ -393,9 +398,7 @@ int enemySMTick(int state){
 				updatePlayerInfo(gold, level, health);
 			}
 			LCD_DisplayString(1, updatePlayerInfo(gold, level, health));
-			if(health <= 0){
-				LCD_DisplayString(1, "You lose");
-			}
+			*/
 			inGame = 0;
 			break;
 	}
