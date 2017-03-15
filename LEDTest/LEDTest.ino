@@ -18,6 +18,7 @@ unsigned int cursorY = 30; //Y position of cursor
 unsigned char movement = 0x00; //New cursor position
 unsigned char tower = 0x00; //Selected turret
 unsigned char t = 0; //Used to index through towerLEDS[]
+unsigned char numActiveTowers = 0;
 
 //------------------------Setup()
 void setup() {
@@ -46,7 +47,6 @@ const unsigned short numTowers = sizeof(towerLEDS)/sizeof(towerLED*);
 void moveCursor(); //Moves cursor
 void levels(); //Draws level
 void drawAllActiveTowers(); //Draws purchased towers
-void matrixDisplaySMTick(); //State machine that deals with Cursor and Towers 
 void checkCursor();
 void checkTowers();
 void drawEnemies();
@@ -65,13 +65,12 @@ void loop() {
     incomingByte = Serial.read();
   }
   matrix.fillScreen(0);
-  drawEnemies();
-  checkCursor(); //Need to add delay. Cursor moves quick
-  //matrixDisplaySMTick(); //Adjusts values for cursor, towers 
-  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draws cursor's position
-  drawAllActiveTowers(); //Draws all purchased towers
+  drawEnemies(); //Checks user input and draws enemies
+  checkCursor(); //Checks user input and moves cursor
+  checkTowers(); //Checks user input and draws towers
   levels(); //Display current level
   matrix.swapBuffers(false); //Update Display
+  delay(60 - (numActiveTowers*20)); //TODO: Find more exact equation for cursor delay.
 }
 
 //------------------------Functions
@@ -89,68 +88,44 @@ void drawEnemies(){
 }
 
 void checkCursor(){
- if(incomingByte == 0x08 && cursorY < 31){
-  cursorY++; //right
- } else if(incomingByte == 0x04 && cursorY > 0){
-  cursorY--; //left
- } else if(incomingByte == 0x01 && cursorX > 0){
-  cursorX--; //up
- } else if(incomingByte == 0x02 && cursorX < 15){
-  cursorX++; //down
- } else if(incomingByte == 0x00){
-  
- }
+  if(incomingByte == 0x08 && cursorY < 31){ cursorY++;} //right 
+  else if(incomingByte == 0x04 && cursorY > 0){ cursorY--;}  //left
+  else if(incomingByte == 0x01 && cursorX > 0){ cursorX--;} //up
+  else if(incomingByte == 0x02 && cursorX < 15){ cursorX++;} //down
+  else if(incomingByte == 0x00){ }
+  matrix.drawCircle(cursorY, cursorX, 1, matrix.Color333(7, 0, 7)); //Draws cursor's position
 }
 
 void checkTowers(){
-  
-}
-
-void matrixDisplaySMTick(){
-  switch(state){ //Transitions
-    case matrix_init: state = notInGameState; break;
-    case notInGameState:
-      if((incomingByte >> 4 != 0)){ //Placing tower
-        towerLEDS[t]->xPos = cursorX;
-        towerLEDS[t]->yPos = cursorY; //TODO: Check if current X,Y position is taken by any of the other towers
-        if(incomingByte >> 4 == 1){ 
-          Serial.write(20); 
-          Serial.flush(); 
-          towerLEDS[t]->type = 1; 
-        } else if(incomingByte >> 4 == 2){ 
-          Serial.write(40); 
-          Serial.flush();
-          towerLEDS[t]->type = 2; 
-        } else if(incomingByte >> 4 == 3){ 
-          Serial.write(60); 
-          Serial.flush();
-          towerLEDS[t]->type = 3; 
-        }
-        towerLEDS[t]->effectRadius = 1;
-        towerLEDS[t]->active = 1;
-        t++;
-        state = notInGameState;
-      } else if((incomingByte << 4 != 0)){ state = moveCursor_Press; } // Moving cursor
-      else { state = notInGameState; }
-      break;
-    case moveCursor_Press:
-      if(incomingByte << 4 != 0){ movement = incomingByte; state = moveCursor_Press; } 
-      else if(incomingByte << 4 == 0){ state = moveCursor_Release; }
-      break;
-    case moveCursor_Release: state = notInGameState; break;
-  }
-  switch(state){ //Actions
-    case matrix_init: break;
-    case notInGameState: break;
-    case moveCursor_Press: break;
-    case moveCursor_Release:
-      if((movement & 0x01) && cursorX > 0){ cursorX = cursorX - 1; } //move circle up
-      else if((movement & 0x02) && cursorX < 15){ cursorX = cursorX + 1; } //move circle down
-      else if((movement & 0x04) && cursorY > 0){ cursorY = cursorY - 1; } //move circle left
-      else if((movement & 0x08) && cursorY < 31){ cursorY = cursorY + 1; } //move circle right
-      else{} //don't move circle
-      break;
-  }
+ if(incomingByte == 0x10){
+    towerLEDS[t]->xPos = cursorX;
+    towerLEDS[t]->yPos = cursorY;
+    Serial.write(20); 
+    Serial.flush(); 
+    towerLEDS[t]->type = 1; 
+    towerLEDS[t]->effectRadius = 1;
+    towerLEDS[t]->active = 1;
+    t++;
+ } else if(incomingByte == 0x20){
+    towerLEDS[t]->xPos = cursorX;
+    towerLEDS[t]->yPos = cursorY;
+    Serial.write(40); 
+    Serial.flush(); 
+    towerLEDS[t]->type = 2; 
+    towerLEDS[t]->effectRadius = 1;
+    towerLEDS[t]->active = 1;
+    t++;
+ } else if(incomingByte == 0x30){
+    towerLEDS[t]->xPos = cursorX;
+    towerLEDS[t]->yPos = cursorY;
+    Serial.write(60); 
+    Serial.flush(); 
+    towerLEDS[t]->type = 3; 
+    towerLEDS[t]->effectRadius = 1;
+    towerLEDS[t]->active = 1;
+    t++;
+ }
+ drawAllActiveTowers(); //Draws all purchased towers
 }
 
 void drawEnemyOne(){
@@ -200,6 +175,7 @@ void drawAllActiveTowers(){ //Draw all active towers in towerLEDS[]
           towerLEDS[i]->effectRadius = 1;
         }
       }
+      if(numActiveTowers < 3) numActiveTowers++;
     }
   }
 }
